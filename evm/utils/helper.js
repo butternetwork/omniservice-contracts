@@ -74,7 +74,7 @@ async function getMos(chainId, network) {
 }
 
 async function readFromFile(network) {
-    let p = path.join(__dirname, "../deployments/mos.json");
+    let p = path.join(__dirname, "../configs/cotractConfig.json");
     let deploy;
     if (!fs.existsSync(p)) {
         deploy = {};
@@ -193,8 +193,8 @@ async function getTokensFromFile(network) {
 }
 
 async function writeToFile(deploy) {
-    let p = path.join(__dirname, "../deployments/mos.json");
-    await folder("../deployments/");
+    let p = path.join(__dirname, "../configs/cotractConfig.json");
+    await folder("../configs/");
     // fs.writeFileSync(p,JSON.stringify(deploy));
     fs.writeFileSync(p, JSON.stringify(deploy, null, "\t"));
 }
