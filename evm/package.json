@@ -1,0 +1,46 @@
+{
+  "name": "omniservice",
+  "version": "0.3.0",
+  "description": "omnichain messaging service.",
+  "files": [
+    "artifacts/contracts/**/*.sol/*.json",
+    "!artifacts/contracts/**/*.sol/*.dbg.json",
+    "contracts"
+  ],
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/butternetwork/omniservice-contracts.git"
+  },
+  "author": "Butter Network",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/butternetwork/omniservice-contracts/issues"
+  },
+  "devDependencies": {
+    "hardhat": "^2.22.3"
+  },
+  "dependencies": {
+    "@mapprotocol/protocol": "^0.6.1",
+    "@matterlabs/hardhat-zksync-deploy": "^0.6.6",
+    "@matterlabs/hardhat-zksync-solc": "^1.1.4",
+    "@matterlabs/hardhat-zksync-verify": "^1.4.2",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.10",
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
+    "@nomiclabs/hardhat-etherscan": "^3.1.8",
+    "@nomiclabs/hardhat-waffle": "^2.0.6",
+    "@openzeppelin/contracts": "^4.8.3",
+    "@openzeppelin/contracts-upgradeable": "^4.8.3",
+    "chai": "^4.3.4",
+    "dotenv": "^16.4.5",
+    "ethers": "^5.7.2",
+    "hardhat-abi-exporter": "^2.10.1",
+    "hardhat-deploy": "^0.7.11",
+    "hardhat-gas-reporter": "^1.0.10",
+    "hardhat-spdx-license-identifier": "^2.2.0",
+    "prettier": "^3.2.5",
+    "solidity-coverage": "^0.8.12",
+    "tronweb": "^5.3.2",
+    "zksync-web3": "^0.14.3"
+  }
+}
