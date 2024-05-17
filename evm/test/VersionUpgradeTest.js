@@ -87,10 +87,11 @@ describe("MAPO ServiceV3 start test", () =>{
 
             await mos.transferOut("97",dataBytes,"0x0000000000000000000000000000000000000000",{value:60000000000});
 
-            await expect(mos.transferOut("97",dataBytes,"0x0000000000000000000000000000000000000000",{value:50})).to.be.revertedWith("Need message fee");
+            await expect(mos.transferOut("97",dataBytes,"0x0000000000000000000000000000000000000000",{value:50})).to.be.revertedWith("MOSV3: Need message fee");
 
             dataBytes = await echo.getMessageBytes([false,0,echo.address,data,"5000000","10"]);
-            await expect(mos.transferOut("97",dataBytes,"0x0000000000000000000000000000000000000000",{value:100})).to.be.revertedWith("Not supported msg value");
+
+            await expect(mos.transferOut("97",dataBytes,"0x0000000000000000000000000000000000000000",{value:100})).to.be.revertedWith("MOSV3: Not support msg value");
 
         });
 
@@ -107,10 +108,10 @@ describe("MAPO ServiceV3 start test", () =>{
 
             await mos.transferOut("97",dataBytes,"0x0000000000000000000000000000000000000000",{value:60000000000});
 
-            await expect(mos.transferOut("97",dataBytes,"0x0000000000000000000000000000000000000000",{value:50})).to.be.revertedWith("Need message fee");
+            await expect(mos.transferOut("97",dataBytes,"0x0000000000000000000000000000000000000000",{value:50})).to.be.revertedWith("MOSV3: Need message fee");
 
             dataBytes = await echo.getMessageBytes([false,0,echo.address,data,"5000000","10"]);
-            await expect(mos.transferOut("97",dataBytes,"0x0000000000000000000000000000000000000000",{value:100})).to.be.revertedWith("Not supported msg value");
+            await expect(mos.transferOut("97",dataBytes,"0x0000000000000000000000000000000000000000",{value:100})).to.be.revertedWith("MOSV3: Not support msg value");
 
             expect(await echo.EchoList("hello")).to.equal("");
 

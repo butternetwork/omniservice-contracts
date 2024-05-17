@@ -77,7 +77,7 @@ describe("MAPO ServiceRelayV3 start test", () =>{
 
             await relay.transferOut("97",dataBytes,"0x0000000000000000000000000000000000000000",{value:120000000000});
 
-            await expect(relay.transferOut("212",dataBytes,"0x0000000000000000000000000000000000000000",{value:100})).to.be.revertedWith("Only other chain");
+            await expect(relay.transferOut("212",dataBytes,"0x0000000000000000000000000000000000000000",{value:100})).to.be.revertedWith("MOSV3: Only other chain");
 
 
         });

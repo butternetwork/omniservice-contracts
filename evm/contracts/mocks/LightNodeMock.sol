@@ -6,12 +6,13 @@ import "@mapprotocol/protocol/contracts/lib/RLPEncode.sol";
 
 contract LightNode {
 
-    function verifyProofData(bytes memory _receiptProof)
-    external
-    pure
-    returns (bool success, string memory message, bytes memory logs){
+    event ClientNotifySend(address indexed sender, uint256 indexed blockHeight, bytes notifyData);
 
-        return(true,"success",_receiptProof);
+
+    function verifyProofData(
+        bytes memory _receiptProof
+    ) external pure returns (bool success, string memory message, bytes memory logs) {
+        return (true, "success", _receiptProof);
     }
 
     struct txLog {
@@ -20,10 +21,7 @@ contract LightNode {
         bytes data;
     }
 
-    function encodeTxLog(txLog[] memory _txLogs)
-    external
-    pure
-    returns (bytes memory output){
+    function encodeTxLog(txLog[] memory _txLogs) external pure returns (bytes memory output) {
         bytes[] memory listLog = new bytes[](_txLogs.length);
         bytes[] memory loglist = new bytes[](3);
         for (uint256 j = 0; j < _txLogs.length; j++) {
@@ -38,5 +36,9 @@ contract LightNode {
             listLog[j] = logBytes;
         }
         output = RLPEncode.encodeList(listLog);
+    }
+
+    function notifyLightClient(address _from, bytes memory _data) external {
+        emit ClientNotifySend(_from, block.number, _data);
     }
 }

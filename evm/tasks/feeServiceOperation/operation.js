@@ -10,11 +10,7 @@ task("setFeeReceiver",
         const deployer = accounts[0]
 
         const ChainFeeList = await getMessageFeeConfig(hre.network.name);
-        console.log(ChainFeeList)
-
         const contractList = await getContractList(hre.network.config.chainId)
-        console.log(contractList)
-
         let feeService = await getFeeContractImpl(hre.network.config.chainId, contractList["feeService"]);
 
         if(isTron(hre.network.config.chainId)){
@@ -23,6 +19,7 @@ task("setFeeReceiver",
             } else {
                 await feeService.setFeeReceiver(getEvmAddress(hre.network.name,taskArgs.receiver)).send();
             }
+            console.log(`Update chain ${hre.network.name} change feeRecevier address: ${await feeService.feeReceiver().call()}`);
         }else {
             let currentReceiver = await feeService.feeReceiver();
             if (taskArgs.receiver === "latest"){
@@ -107,7 +104,6 @@ task("setMessageFee",
                     }
                 }
             }
-
         }else{
             let baseGas;
             if (taskArgs.chainid === "latest") {
