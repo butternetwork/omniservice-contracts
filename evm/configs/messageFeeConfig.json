@@ -1,0 +1,21 @@
+{
+    "Makalu" : {
+        "feeRecevier":"0x49d6Dae5D59B3aF296DF35BDc565371c8A563ef6",
+        "chainIdList":{
+            "1001": {
+                "baseGas":"100",
+                "chainGasPrice":{
+                    "0x33daba9618a75a7aff103e53afe530fbacf4a3dd":"1000",
+                    "0x9f722b2cb30093f766221fd0d37964949ed66918":"10000",
+                    "0x05ab928d446d8ce6761e368c8e7be03c3168a9ec":"100000"
+                }
+            },
+            "97":{
+                "baseGas":"200",
+                "chainGasPrice":{
+                    "0x55d398326f99059fF775485246999027B3197955":"2000"
+                }
+            }
+        }
+    }
+}
