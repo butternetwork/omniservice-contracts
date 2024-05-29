@@ -35,6 +35,8 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
 
     mapping(address => mapping(uint256 => mapping(bytes => bool))) public callerList;
 
+    mapping(uint256 => mapping(bytes => mapping(bytes32 => bytes32))) public storedCalldataList;
+
     event mapTransferExecute(uint256 indexed fromChain, uint256 indexed toChain, address indexed from);
     event SetLightClient(address indexed lightNode);
     event SetFeeService(address indexed feeServiceAddress);
@@ -128,7 +130,7 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
         uint256,
         uint256 _blockNum,
         bytes32 _orderId
-    ) external virtual view override returns (bool exists, bool verifiable, uint256 nodeType) {
+    ) external view virtual override returns (bool exists, bool verifiable, uint256 nodeType) {
         exists = orderList[_orderId];
         verifiable = lightNode.isVerifiable(_blockNum, bytes32(""));
         nodeType = lightNode.nodeType();
@@ -144,18 +146,18 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
         uint256 _toChain,
         bytes memory _messageData,
         address _feeToken
-    ) external virtual payable override nonReentrant whenNotPaused returns (bytes32) {
+    ) external payable virtual override nonReentrant whenNotPaused returns (bytes32) {
         bytes32 orderId = _transferOut(_toChain, _messageData, _feeToken);
 
-        _notifyLightClient(bytes(''));
+        _notifyLightClient(bytes(""));
 
         return orderId;
     }
 
     function transferIn(uint256 _chainId, bytes memory _receiptProof) external virtual nonReentrant whenNotPaused {
         require(_chainId == relayChainId, "MOSV3: Invalid chain id");
-        (bool sucess, string memory message, bytes memory logArray) = lightNode.verifyProofData(_receiptProof);
-        require(sucess, message);
+        (bool success, string memory message, bytes memory logArray) = lightNode.verifyProofData(_receiptProof);
+        require(success, message);
 
         LogDecoder.txLog[] memory logs = LogDecoder.decodeTxLogs(logArray);
         for (uint i = 0; i < logs.length; i++) {
@@ -174,8 +176,28 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
         emit mapTransferExecute(_chainId, selfChainId, msg.sender);
     }
 
-    function _transferOut(uint256 _toChain, bytes memory _messageData, address _feeToken) internal returns (bytes32) {
+    function transferInWithIndex(
+        uint256 _chainId,
+        uint256 _logIndex,
+        bytes memory _receiptProof
+    ) external virtual nonReentrant whenNotPaused {
+        require(_chainId == relayChainId, "MOSV3: Invalid chain id");
+        (bool success, string memory message, bytes memory logArray) = lightNode.verifyProofDataWithCache(_receiptProof);
+        require(success, message);
 
+        LogDecoder.txLog memory log = LogDecoder.decodeTxLog(logArray, _logIndex);
+        require(relayContract == log.addr, "MOSV3: Invalid relay");
+
+        bytes32 topic = abi.decode(log.topics[0], (bytes32));
+        require(topic == EvmDecoder.MAP_MESSAGE_TOPIC, "MOSV3: Invalid topic");
+
+        (, IEvent.dataOutEvent memory outEvent) = EvmDecoder.decodeDataLog(log);
+        require(outEvent.toChain == selfChainId, "MOSV3: Invalid target chain id");
+
+        _transferIn(outEvent);
+    }
+
+    function _transferOut(uint256 _toChain, bytes memory _messageData, address _feeToken) internal returns (bytes32) {
         require(_toChain != selfChainId, "MOSV3: Only other chain");
 
         MessageData memory msgData = abi.decode(_messageData, (MessageData));
@@ -202,8 +224,6 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
 
         bytes memory fromAddress = Utils.toBytes(msg.sender);
 
-        //bytes memory messageData = abi.encode(_messageData);
-
         emit mapMessageOut(selfChainId, _toChain, orderId, fromAddress, _messageData);
 
         return orderId;
@@ -211,7 +231,6 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
 
     function _transferIn(IEvent.dataOutEvent memory _outEvent) internal checkOrder(_outEvent.orderId) {
         MessageData memory msgData = abi.decode(_outEvent.messageData, (MessageData));
-
         _messageIn(_outEvent, msgData);
     }
 
@@ -231,6 +250,8 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
                         bytes("")
                     );
                 } else {
+                    bytes memory messageData = abi.encode(_msgData);
+                    storedCalldataList[_outEvent.fromChain][_outEvent.fromAddress][_outEvent.orderId] = keccak256(messageData);
                     emit mapMessageIn(
                         _outEvent.fromChain,
                         _outEvent.toChain,
@@ -242,6 +263,8 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
                     );
                 }
             } else {
+                bytes memory messageData = abi.encode(_msgData);
+                storedCalldataList[_outEvent.fromChain][_outEvent.fromAddress][_outEvent.orderId] = keccak256(messageData);
                 emit mapMessageIn(
                     _outEvent.fromChain,
                     _outEvent.toChain,
@@ -255,13 +278,13 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
         } else if (_msgData.msgType == MessageType.MESSAGE) {
             if (AddressUpgradeable.isContract(target)) {
                 try
-                    IMapoExecutor(target).mapoExecute{gas: _msgData.gasLimit}(
-                        _outEvent.fromChain,
-                        _outEvent.toChain,
-                        _outEvent.fromAddress,
-                        _outEvent.orderId,
-                        _msgData.payload
-                    )
+                IMapoExecutor(target).mapoExecute{gas: _msgData.gasLimit}(
+                    _outEvent.fromChain,
+                    _outEvent.toChain,
+                    _outEvent.fromAddress,
+                    _outEvent.orderId,
+                    _msgData.payload
+                )
                 {
                     emit mapMessageIn(
                         _outEvent.fromChain,
@@ -273,7 +296,8 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
                         bytes("")
                     );
                 } catch (bytes memory reason) {
-                    //storedCalldataList[_outEvent.fromChain][_outEvent.fromAddress] = StoredCalldata(msgData.payload, msgData.target, _outEvent.orderId);
+                    bytes memory messageData = abi.encode(_msgData);
+                    storedCalldataList[_outEvent.fromChain][_outEvent.fromAddress][_outEvent.orderId] = keccak256(messageData);
                     emit mapMessageIn(
                         _outEvent.fromChain,
                         _outEvent.toChain,
@@ -306,6 +330,27 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
                 bytes("MessageTypeError")
             );
         }
+    }
+
+    function retryMessageIn(
+        uint256 _fromChain,
+        bytes32 _orderId,
+        bytes calldata _fromAddress,
+        bytes calldata _messageData
+    ) external virtual nonReentrant whenNotPaused {
+        require(keccak256(_messageData) == storedCalldataList[_fromChain][_fromAddress][_orderId],"MOSV3: error messageDate");
+        IEvent.dataOutEvent memory outEvent = IEvent.dataOutEvent({
+            orderId:_orderId,
+            fromChain:_fromChain,
+            toChain:uint256(selfChainId),
+            fromAddress:_fromAddress,
+            messageData:bytes("")
+        });
+
+        MessageData memory msgData = abi.decode(_messageData, (MessageData));
+
+        _messageIn(outEvent, msgData);
+
     }
 
     function _notifyLightClient(bytes memory _data) internal {

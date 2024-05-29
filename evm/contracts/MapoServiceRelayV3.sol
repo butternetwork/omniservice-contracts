@@ -52,7 +52,7 @@ contract MapoServiceRelayV3 is MapoServiceV3 {
     ) external payable override nonReentrant whenNotPaused returns (bytes32) {
         bytes32 orderId = _transferOut(_toChain, _messageData, _feeToken);
 
-        _notifyLightClient(_toChain, bytes(''));
+        _notifyLightClient(_toChain, bytes(""));
 
         return orderId;
     }
@@ -96,6 +96,38 @@ contract MapoServiceRelayV3 is MapoServiceV3 {
         emit mapTransferExecute(_chainId, selfChainId, msg.sender);
     }
 
+    function transferInWithIndex(
+        uint256 _chainId,
+        uint256 _logIndex,
+        bytes memory _receiptProof
+    ) external override nonReentrant whenNotPaused {
+        (bool success, string memory message, bytes memory logArray) = lightClientManager.verifyProofDataWithCache(
+            _chainId,
+            _receiptProof
+        );
+        require(success, message);
+        if (chainTypes[_chainId] == ChainType.NEAR) {
+            (bytes memory mosContract, IEvent.transferOutEvent[] memory outEvents) = NearDecoder.decodeNearLog(
+                logArray
+            );
+            IEvent.transferOutEvent memory outEvent = outEvents[_logIndex];
+            require(outEvent.toChain != 0, "MOSV3: Invalid target chain id");
+            require(Utils.checkBytes(mosContract, mosContracts[_chainId]), "MOSV3: Invalid mos contract");
+            // TODO support near
+        } else if (chainTypes[_chainId] == ChainType.EVM) {
+            LogDecoder.txLog memory log = LogDecoder.decodeTxLog(logArray, _logIndex);
+            bytes32 topic = abi.decode(log.topics[0], (bytes32));
+            require(topic == EvmDecoder.MAP_MESSAGE_TOPIC, "MOSV3: Invalid topic");
+            bytes memory mosContract = Utils.toBytes(log.addr);
+            require(Utils.checkBytes(mosContract, mosContracts[_chainId]), "MOSV3: Invalid mos contract");
+
+            (, IEvent.dataOutEvent memory outEvent) = EvmDecoder.decodeDataLog(log);
+            _transferIn(_chainId, outEvent);
+        } else {
+            require(false, "MOSV3: Invalid chain type");
+        }
+    }
+
     function _transferIn(
         uint256 _chainId,
         IEvent.dataOutEvent memory _outEvent
@@ -110,14 +142,14 @@ contract MapoServiceRelayV3 is MapoServiceV3 {
         }
     }
 
-    function _messageRelay(IEvent.dataOutEvent memory _outEvent, MessageData memory msgData) internal {
-        if (msgData.relay) {
-            address target = Utils.fromBytes(msgData.target);
-            if (msgData.msgType == MessageType.CALLDATA) {
+    function _messageRelay(IEvent.dataOutEvent memory _outEvent, MessageData memory _msgData) internal {
+        if (_msgData.relay) {
+            address target = Utils.fromBytes(_msgData.target);
+            if (_msgData.msgType == MessageType.CALLDATA) {
                 if (callerList[target][_outEvent.fromChain][_outEvent.fromAddress]) {
-                    (bool success, bytes memory returnData) = target.call{gas: msgData.gasLimit}(msgData.payload);
+                    (bool success, bytes memory returnData) = target.call{gas: _msgData.gasLimit}(_msgData.payload);
                     if (success) {
-                        _notifyLightClient(_outEvent.toChain, bytes(''));
+                        _notifyLightClient(_outEvent.toChain, bytes(""));
                         emit mapMessageOut(
                             _outEvent.fromChain,
                             _outEvent.toChain,
@@ -126,39 +158,43 @@ contract MapoServiceRelayV3 is MapoServiceV3 {
                             returnData
                         );
                     } else {
+                        bytes memory messageData = abi.encode(_msgData);
+                        storedCalldataList[_outEvent.fromChain][_outEvent.fromAddress][_outEvent.orderId] = keccak256(messageData);
                         emit mapMessageIn(
                             _outEvent.fromChain,
                             _outEvent.toChain,
                             _outEvent.orderId,
                             _outEvent.fromAddress,
-                            msgData.payload,
+                            _msgData.payload,
                             false,
                             returnData
                         );
                     }
                 } else {
+                    bytes memory messageData = abi.encode(_msgData);
+                    storedCalldataList[_outEvent.fromChain][_outEvent.fromAddress][_outEvent.orderId] = keccak256(messageData);
                     emit mapMessageIn(
                         _outEvent.fromChain,
                         _outEvent.toChain,
                         _outEvent.orderId,
                         _outEvent.fromAddress,
-                        msgData.payload,
+                        _msgData.payload,
                         false,
                         bytes("FromAddressNotCaller")
                     );
                 }
-            } else if (msgData.msgType == MessageType.MESSAGE) {
+            } else if (_msgData.msgType == MessageType.MESSAGE) {
                 if (AddressUpgradeable.isContract(target)) {
                     try
-                        IMapoExecutor(target).mapoExecute{gas: msgData.gasLimit}(
-                            _outEvent.fromChain,
-                            _outEvent.toChain,
-                            _outEvent.fromAddress,
-                            _outEvent.orderId,
-                            msgData.payload
-                        )
+                    IMapoExecutor(target).mapoExecute{gas: _msgData.gasLimit}(
+                        _outEvent.fromChain,
+                        _outEvent.toChain,
+                        _outEvent.fromAddress,
+                        _outEvent.orderId,
+                        _msgData.payload
+                    )
                     returns (bytes memory newMessageData) {
-                        _notifyLightClient(_outEvent.toChain, bytes(''));
+                        _notifyLightClient(_outEvent.toChain, bytes(""));
                         emit mapMessageOut(
                             _outEvent.fromChain,
                             _outEvent.toChain,
@@ -167,12 +203,14 @@ contract MapoServiceRelayV3 is MapoServiceV3 {
                             newMessageData
                         );
                     } catch (bytes memory reason) {
+                        bytes memory messageData = abi.encode(_msgData);
+                        storedCalldataList[_outEvent.fromChain][_outEvent.fromAddress][_outEvent.orderId] = keccak256(messageData);
                         emit mapMessageIn(
                             _outEvent.fromChain,
                             _outEvent.toChain,
                             _outEvent.orderId,
                             _outEvent.fromAddress,
-                            msgData.payload,
+                            _msgData.payload,
                             false,
                             reason
                         );
@@ -183,7 +221,7 @@ contract MapoServiceRelayV3 is MapoServiceV3 {
                         _outEvent.toChain,
                         _outEvent.orderId,
                         _outEvent.fromAddress,
-                        msgData.payload,
+                        _msgData.payload,
                         false,
                         bytes("NoContractAddress")
                     );
@@ -194,13 +232,13 @@ contract MapoServiceRelayV3 is MapoServiceV3 {
                     _outEvent.toChain,
                     _outEvent.orderId,
                     _outEvent.fromAddress,
-                    msgData.payload,
+                    _msgData.payload,
                     false,
                     bytes("MessageTypeError")
                 );
             }
         } else {
-            _notifyLightClient(_outEvent.toChain, bytes(''));
+            _notifyLightClient(_outEvent.toChain, bytes(""));
             emit mapMessageOut(
                 _outEvent.fromChain,
                 _outEvent.toChain,
@@ -210,6 +248,31 @@ contract MapoServiceRelayV3 is MapoServiceV3 {
             );
         }
     }
+
+    function retryMessageIn(
+        uint256 _fromChain,
+        bytes32 _orderId,
+        bytes calldata _fromAddress,
+        bytes calldata _messageData
+    ) external override nonReentrant whenNotPaused {
+        require(keccak256(_messageData) == storedCalldataList[_fromChain][_fromAddress][_orderId],"");
+        IEvent.dataOutEvent memory outEvent = IEvent.dataOutEvent({
+        orderId:_orderId,
+        fromChain:_fromChain,
+        toChain:uint256(selfChainId),
+        fromAddress:_fromAddress,
+        messageData:bytes("")
+        });
+
+        MessageData memory msgData = abi.decode(_messageData, (MessageData));
+        if(msgData.relay){
+            _messageRelay(outEvent, msgData);
+        }else{
+            _messageIn(outEvent, msgData);
+        }
+
+    }
+
 
     function _notifyLightClient(uint256 _chainId, bytes memory _data) internal {
         lightClientManager.notifyLightClient(_chainId, address(this), _data);
