@@ -147,14 +147,21 @@ contract MapoServiceRelayV3 is MapoServiceV3 {
             address target = Utils.fromBytes(_msgData.target);
             if (_msgData.msgType == MessageType.CALLDATA) {
                 if (callerList[target][_outEvent.fromChain][_outEvent.fromAddress]) {
-                    (bool success, bytes memory returnData) = target.call{gas: _msgData.gasLimit}(_msgData.payload);
+                    (bool success, bytes memory returnData) = target.call(_msgData.payload);
                     if (success) {
+                        bytes memory data = abi.decode(returnData, (bytes));
+                        MessageData memory msgData = abi.decode(data, (MessageData));
+                        if(msgData.gasLimit != _msgData.gasLimit || msgData.value != 0){
+                            msgData.gasLimit = _msgData.gasLimit;
+                            msgData.value = 0;
+                            returnData = abi.encode(msgData);
+                        }
                         _notifyLightClient(_outEvent.toChain, bytes(""));
                         emit mapMessageOut(
                             _outEvent.fromChain,
                             _outEvent.toChain,
                             _outEvent.orderId,
-                            _outEvent.fromAddress,
+                            _msgData.target,
                             returnData
                         );
                     } else {
@@ -171,8 +178,7 @@ contract MapoServiceRelayV3 is MapoServiceV3 {
                         );
                     }
                 } else {
-                    bytes memory messageData = abi.encode(_msgData);
-                    storedCalldataList[_outEvent.fromChain][_outEvent.fromAddress][_outEvent.orderId] = keccak256(messageData);
+                    storedCalldataList[_outEvent.fromChain][_outEvent.fromAddress][_outEvent.orderId] = keccak256(abi.encode(_msgData));
                     emit mapMessageIn(
                         _outEvent.fromChain,
                         _outEvent.toChain,
@@ -186,7 +192,7 @@ contract MapoServiceRelayV3 is MapoServiceV3 {
             } else if (_msgData.msgType == MessageType.MESSAGE) {
                 if (AddressUpgradeable.isContract(target)) {
                     try
-                    IMapoExecutor(target).mapoExecute{gas: _msgData.gasLimit}(
+                    IMapoExecutor(target).mapoExecute(
                         _outEvent.fromChain,
                         _outEvent.toChain,
                         _outEvent.fromAddress,
@@ -195,16 +201,21 @@ contract MapoServiceRelayV3 is MapoServiceV3 {
                     )
                     returns (bytes memory newMessageData) {
                         _notifyLightClient(_outEvent.toChain, bytes(""));
+                        MessageData memory msgData = abi.decode(newMessageData, (MessageData));
+                        if(msgData.gasLimit != _msgData.gasLimit || msgData.value != 0){
+                            msgData.gasLimit = _msgData.gasLimit;
+                            msgData.value = 0;
+                            newMessageData = abi.encode(msgData);
+                        }
                         emit mapMessageOut(
                             _outEvent.fromChain,
                             _outEvent.toChain,
                             _outEvent.orderId,
-                            _outEvent.fromAddress,
+                            _msgData.target,
                             newMessageData
                         );
                     } catch (bytes memory reason) {
-                        bytes memory messageData = abi.encode(_msgData);
-                        storedCalldataList[_outEvent.fromChain][_outEvent.fromAddress][_outEvent.orderId] = keccak256(messageData);
+                        storedCalldataList[_outEvent.fromChain][_outEvent.fromAddress][_outEvent.orderId] = keccak256(abi.encode(_msgData));
                         emit mapMessageIn(
                             _outEvent.fromChain,
                             _outEvent.toChain,
