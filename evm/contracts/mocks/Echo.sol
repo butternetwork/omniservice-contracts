@@ -5,6 +5,7 @@ pragma solidity ^0.8.7;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../interface/IMapoExecutor.sol";
 import "../interface/IMOSV3.sol";
+import "hardhat/console.sol";
 
 contract Echo is Ownable, IMapoExecutor {
     address MapoService;
@@ -26,12 +27,30 @@ contract Echo is Ownable, IMapoExecutor {
         EchoList[_key] = _val;
         string memory key = "hello";
         string memory val = "hellCallData";
-        newData = abi.encode(key, val);
+
+        IMOSV3.MessageData memory msgData = IMOSV3.MessageData({
+            relay:true,
+            msgType:IMOSV3.MessageType.MESSAGE,
+            target:bytes(""),
+            payload:abi.encode(key, val),
+            gasLimit:500000,
+            value:0
+        });
+
+        newData = abi.encode(msgData);
+
+
         return newData;
     }
 
     function getData(string memory _key, string memory _val) public pure returns (bytes memory data) {
         data = abi.encodeWithSelector(Echo.setList.selector, _key, _val);
+    }
+
+    function getMessageDatas(bytes memory _b) public pure returns (bytes memory _data) {
+        IMOSV3.MessageData memory msgData = abi.decode(_b, (IMOSV3.MessageData));
+        _data = msgData.payload;
+        //return _data;
     }
 
     function getRelayData(string memory _key, string memory _val) public pure returns (bytes memory data) {
@@ -84,7 +103,18 @@ contract Echo is Ownable, IMapoExecutor {
         EchoList[key] = value;
 
         string memory val = "hello-Target-address";
-        newData = abi.encode(val, key);
+        IMOSV3.MessageData memory msgData = IMOSV3.MessageData({
+            relay:true,
+            msgType:IMOSV3.MessageType.MESSAGE,
+            target:bytes(""),
+            payload:abi.encode(val, key),
+            gasLimit:500000,
+            value:0
+        });
+
+        newData = abi.encode(msgData);
+
         return newData;
     }
 }
+
