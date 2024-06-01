@@ -17,7 +17,7 @@ interface IMOSV3 {
     // @notice This is the configuration you need across the chain.
     // @param relay - When it is true, the relay chain is required to perform a special execution to continue across the chain.
     // @param msgType - Different execution patterns of messages across chains.
-    // @param target - The contract address of the target chain.
+    // @param target - The target contract address of the target chain.
     // @param payload - Cross-chain data.
     // @param gasLimit - The gasLimit allowed to be consumed by an operation performed on the target chain.
     // @param value - Collateral value cross-chain, currently not supported, default is 0.

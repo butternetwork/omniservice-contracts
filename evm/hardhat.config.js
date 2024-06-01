@@ -167,28 +167,15 @@ module.exports = {
       accounts: accounts,
     },
   },
+  zksolc: {
+    version: "1.4.1",
+    compilerSource: "binary",
+    settings: {},
+  },
   solidity: {
     compilers: [
       {
-        version: '0.8.7',
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200
-          }
-        }
-      },
-      {
         version: '0.8.20',
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200
-          }
-        }
-      },
-      {
-        version: '0.4.22',
         settings: {
           optimizer: {
             enabled: true,
