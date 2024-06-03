@@ -35,7 +35,7 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
 
     mapping(address => mapping(uint256 => mapping(bytes => bool))) public callerList;
 
-    mapping(uint256 => mapping(bytes => mapping(bytes32 => bytes32))) public storedCalldataList;
+    mapping(bytes32 => bytes32) public storedCalldataList;
 
     event mapTransferExecute(uint256 indexed fromChain, uint256 indexed toChain, address indexed from);
     event SetLightClient(address indexed lightNode);
@@ -197,6 +197,27 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
         _transferIn(outEvent);
     }
 
+    function retryMessageIn(
+        uint256 _fromChain,
+        bytes32 _orderId,
+        bytes calldata _fromAddress,
+        bytes calldata _messageData
+    ) external virtual nonReentrant whenNotPaused {
+        require(keccak256(abi.encodePacked(_fromChain,_fromAddress,_messageData)) == storedCalldataList[_orderId],"MOSV3: error messageDate");
+        IEvent.dataOutEvent memory outEvent = IEvent.dataOutEvent({
+            orderId:_orderId,
+            fromChain:_fromChain,
+            toChain:uint256(selfChainId),
+            fromAddress:_fromAddress,
+            messageData:_messageData
+        });
+        delete storedCalldataList[_orderId];
+        MessageData memory msgData = abi.decode(_messageData, (MessageData));
+        msgData.gasLimit = gasleft();
+        _messageIn(outEvent, msgData);
+
+    }
+
     function _transferOut(uint256 _toChain, bytes memory _messageData, address _feeToken) internal returns (bytes32) {
         require(_toChain != selfChainId, "MOSV3: Only other chain");
 
@@ -250,8 +271,8 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
                         bytes("")
                     );
                 } else {
-                    bytes memory messageData = abi.encode(_msgData);
-                    storedCalldataList[_outEvent.fromChain][_outEvent.fromAddress][_outEvent.orderId] = keccak256(messageData);
+                    //bytes memory messageData = abi.encode(_msgData);
+                    storedCalldataList[_outEvent.orderId] = keccak256(abi.encodePacked(_outEvent.fromChain,_outEvent.fromAddress,_outEvent.messageData));
                     emit mapMessageIn(
                         _outEvent.fromChain,
                         _outEvent.toChain,
@@ -263,8 +284,8 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
                     );
                 }
             } else {
-                bytes memory messageData = abi.encode(_msgData);
-                storedCalldataList[_outEvent.fromChain][_outEvent.fromAddress][_outEvent.orderId] = keccak256(messageData);
+                //bytes memory messageData = abi.encode(_msgData);
+                storedCalldataList[_outEvent.orderId] = keccak256(abi.encodePacked(_outEvent.fromChain,_outEvent.fromAddress,_outEvent.messageData));
                 emit mapMessageIn(
                     _outEvent.fromChain,
                     _outEvent.toChain,
@@ -296,8 +317,8 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
                         bytes("")
                     );
                 } catch (bytes memory reason) {
-                    bytes memory messageData = abi.encode(_msgData);
-                    storedCalldataList[_outEvent.fromChain][_outEvent.fromAddress][_outEvent.orderId] = keccak256(messageData);
+                    //bytes memory messageData = abi.encode(_msgData);
+                    storedCalldataList[_outEvent.orderId] = keccak256(abi.encodePacked(_outEvent.fromChain,_outEvent.fromAddress,_outEvent.messageData));
                     emit mapMessageIn(
                         _outEvent.fromChain,
                         _outEvent.toChain,
@@ -330,27 +351,6 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
                 bytes("MessageTypeError")
             );
         }
-    }
-
-    function retryMessageIn(
-        uint256 _fromChain,
-        bytes32 _orderId,
-        bytes calldata _fromAddress,
-        bytes calldata _messageData
-    ) external virtual nonReentrant whenNotPaused {
-        require(keccak256(_messageData) == storedCalldataList[_fromChain][_fromAddress][_orderId],"MOSV3: error messageDate");
-        IEvent.dataOutEvent memory outEvent = IEvent.dataOutEvent({
-            orderId:_orderId,
-            fromChain:_fromChain,
-            toChain:uint256(selfChainId),
-            fromAddress:_fromAddress,
-            messageData:bytes("")
-        });
-
-        MessageData memory msgData = abi.decode(_messageData, (MessageData));
-
-        _messageIn(outEvent, msgData);
-
     }
 
     function _notifyLightClient(bytes memory _data) internal {

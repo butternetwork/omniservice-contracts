@@ -128,6 +128,31 @@ contract MapoServiceRelayV3 is MapoServiceV3 {
         }
     }
 
+    function retryMessageIn(
+        uint256 _fromChain,
+        bytes32 _orderId,
+        bytes calldata _fromAddress,
+        bytes calldata _messageData
+    ) external override nonReentrant whenNotPaused {
+        require(keccak256(abi.encodePacked(_fromChain,_fromAddress,_messageData)) == storedCalldataList[_orderId],"MOSV3: error messageDate");
+        IEvent.dataOutEvent memory outEvent = IEvent.dataOutEvent({
+            orderId:_orderId,
+            fromChain:_fromChain,
+            toChain:uint256(selfChainId),
+            fromAddress:_fromAddress,
+            messageData:_messageData
+        });
+        delete storedCalldataList[_orderId];
+        MessageData memory msgData = abi.decode(_messageData, (MessageData));
+        if(msgData.relay){
+            _messageRelay(outEvent, msgData);
+        }else{
+            msgData.gasLimit = gasleft();
+            _messageIn(outEvent, msgData);
+        }
+
+    }
+
     function _transferIn(
         uint256 _chainId,
         IEvent.dataOutEvent memory _outEvent
@@ -165,8 +190,8 @@ contract MapoServiceRelayV3 is MapoServiceV3 {
                             returnData
                         );
                     } else {
-                        bytes memory messageData = abi.encode(_msgData);
-                        storedCalldataList[_outEvent.fromChain][_outEvent.fromAddress][_outEvent.orderId] = keccak256(messageData);
+                        //bytes memory messageData = abi.encode(_msgData);
+                        storedCalldataList[_outEvent.orderId] = keccak256(abi.encodePacked(_outEvent.fromChain,_outEvent.fromAddress,_outEvent.messageData));
                         emit mapMessageIn(
                             _outEvent.fromChain,
                             _outEvent.toChain,
@@ -178,7 +203,8 @@ contract MapoServiceRelayV3 is MapoServiceV3 {
                         );
                     }
                 } else {
-                    storedCalldataList[_outEvent.fromChain][_outEvent.fromAddress][_outEvent.orderId] = keccak256(abi.encode(_msgData));
+                    //bytes memory messageData = abi.encode(_msgData);
+                    storedCalldataList[_outEvent.orderId] = keccak256(abi.encodePacked(_outEvent.fromChain,_outEvent.fromAddress,_outEvent.messageData));
                     emit mapMessageIn(
                         _outEvent.fromChain,
                         _outEvent.toChain,
@@ -215,7 +241,8 @@ contract MapoServiceRelayV3 is MapoServiceV3 {
                             newMessageData
                         );
                     } catch (bytes memory reason) {
-                        storedCalldataList[_outEvent.fromChain][_outEvent.fromAddress][_outEvent.orderId] = keccak256(abi.encode(_msgData));
+                        //bytes memory messageData = abi.encode(_msgData);
+                        storedCalldataList[_outEvent.orderId] = keccak256(abi.encodePacked(_outEvent.fromChain,_outEvent.fromAddress,_outEvent.messageData));
                         emit mapMessageIn(
                             _outEvent.fromChain,
                             _outEvent.toChain,
@@ -259,31 +286,6 @@ contract MapoServiceRelayV3 is MapoServiceV3 {
             );
         }
     }
-
-    function retryMessageIn(
-        uint256 _fromChain,
-        bytes32 _orderId,
-        bytes calldata _fromAddress,
-        bytes calldata _messageData
-    ) external override nonReentrant whenNotPaused {
-        require(keccak256(_messageData) == storedCalldataList[_fromChain][_fromAddress][_orderId],"");
-        IEvent.dataOutEvent memory outEvent = IEvent.dataOutEvent({
-        orderId:_orderId,
-        fromChain:_fromChain,
-        toChain:uint256(selfChainId),
-        fromAddress:_fromAddress,
-        messageData:bytes("")
-        });
-
-        MessageData memory msgData = abi.decode(_messageData, (MessageData));
-        if(msgData.relay){
-            _messageRelay(outEvent, msgData);
-        }else{
-            _messageIn(outEvent, msgData);
-        }
-
-    }
-
 
     function _notifyLightClient(uint256 _chainId, bytes memory _data) internal {
         lightClientManager.notifyLightClient(_chainId, address(this), _data);
