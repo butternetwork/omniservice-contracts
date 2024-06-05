@@ -1,4 +1,4 @@
-let { create, readFromFile,getMos,needVerify } = require("../../utils/helper.js");
+let { create, readFromFile, getMos, needVerify } = require("../../utils/helper.js");
 
 function getRole(role) {
     if (role.substr(0, 2) === "0x") {
@@ -8,11 +8,11 @@ function getRole(role) {
         return "0x0000000000000000000000000000000000000000000000000000000000000000";
     }
     let roleName = role;
-    if (role == "manager") {
+    if (role === "manager") {
         roleName = "MANAGER_ROLE";
-    } else if (role == "minter") {
+    } else if (role === "minter") {
         roleName = "MINTER_ROLE";
-    } else if (role == "controller") {
+    } else if (role === "controller") {
         roleName = "CONTROLLER_ROLE";
     }
     return ethers.utils.keccak256(ethers.utils.toUtf8Bytes(roleName));
@@ -95,7 +95,7 @@ task("auth:addControl", "add control")
         await (await authority.addControl(target, funSig, role)).wait();
 
         console.log(
-            `add target address ${taskArgs.target} function ${taskArgs.func} controlled by role ${taskArgs.role} successfully`
+            `add target address ${taskArgs.target} function ${taskArgs.func} controlled by role ${taskArgs.role} successfully`,
         );
     });
 

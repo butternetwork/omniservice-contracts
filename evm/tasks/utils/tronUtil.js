@@ -1,6 +1,5 @@
 const TronWeb = require("tronweb");
 
-
 exports.getTronWeb = async function (network) {
     if (network === "Tron" || network === "TronTest") {
         if (network === "Tron") {
@@ -8,20 +7,20 @@ exports.getTronWeb = async function (network) {
                 "https://api.trongrid.io/",
                 "https://api.trongrid.io/",
                 "https://api.trongrid.io/",
-                process.env.TRON_PRIVATE_KEY
+                process.env.TRON_PRIVATE_KEY,
             );
         } else {
             return new TronWeb(
                 "https://api.nileex.io/",
                 "https://api.nileex.io/",
                 "https://api.nileex.io/",
-                process.env.TRON_PRIVATE_KEY
+                process.env.TRON_PRIVATE_KEY,
             );
         }
     } else {
         throw "unsupport network";
     }
-}
+};
 
 exports.deploy_contract = async function (artifacts, name, args, tronWeb) {
     let c = await artifacts.readArtifact(name);
@@ -39,5 +38,4 @@ exports.deploy_contract = async function (artifacts, name, args, tronWeb) {
 
     //return contract_address;
     return "0x" + contract_instance.address.substring(2);
-}
-
+};

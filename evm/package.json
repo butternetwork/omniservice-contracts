@@ -1,5 +1,5 @@
 {
-  "name": "omniservice",
+  "name": "@butternetwork/omniservice",
   "version": "0.3.0",
   "description": "omni-chain messaging service.",
   "files": [
@@ -8,6 +8,9 @@
     "contracts"
   ],
   "main": "index.js",
+  "scripts": {
+    "format": "prettier --print-width 120 --tab-width 4 --write ./contracts ./tasks ./test ./utils"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/butternetwork/omniservice-contracts.git"
@@ -18,10 +21,7 @@
     "url": "https://github.com/butternetwork/omniservice-contracts/issues"
   },
   "devDependencies": {
-    "hardhat": "^2.22.3"
-  },
-  "dependencies": {
-    "@mapprotocol/protocol": "^0.6.2",
+    "hardhat": "^2.22.3",
     "@matterlabs/hardhat-zksync-deploy": "^0.6.6",
     "@matterlabs/hardhat-zksync-solc": "^1.1.4",
     "@matterlabs/hardhat-zksync-verify": "^1.4.2",
@@ -29,8 +29,6 @@
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@nomiclabs/hardhat-etherscan": "^3.1.8",
     "@nomiclabs/hardhat-waffle": "^2.0.6",
-    "@openzeppelin/contracts": "^4.8.3",
-    "@openzeppelin/contracts-upgradeable": "^4.8.3",
     "chai": "^4.3.4",
     "dotenv": "^16.4.5",
     "ethers": "^5.7.2",
@@ -43,5 +41,10 @@
     "solidity-coverage": "^0.8.12",
     "tronweb": "^5.3.2",
     "zksync-web3": "^0.14.3"
+  },
+  "dependencies": {
+    "@mapprotocol/protocol": "^0.6.2",
+    "@openzeppelin/contracts": "^4.8.3",
+    "@openzeppelin/contracts-upgradeable": "^4.8.3"
   }
 }

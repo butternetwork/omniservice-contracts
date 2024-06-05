@@ -38,7 +38,7 @@ interface IMOSV3 {
         uint256 toChain,
         address feeToken,
         uint256 gasLimit
-    ) external view returns (uint256, address);
+    ) external view returns (uint256 fee, address receiver);
 
     function getOrderStatus(
         uint256 _chainId,

@@ -4,7 +4,7 @@ let path = require("path");
 let { Wallet } = require("zksync-web3");
 let { Deployer } = require("@matterlabs/hardhat-zksync-deploy");
 
-const {DEPLOY_FACTORY,PRIVATE_KEY} = process.env;
+const { DEPLOY_FACTORY, PRIVATE_KEY } = process.env;
 
 async function zksyncDeploy(contractName, args, hre) {
     const wallet = new Wallet(PRIVATE_KEY);
@@ -42,7 +42,6 @@ async function create(salt, bytecode, param) {
     return [addr, redeploy];
 }
 
-
 async function getMos(chainId, network) {
     let deploy = await readFromFile(network);
     if (deploy[network]["mosProxy"]) {
@@ -74,7 +73,6 @@ function getRole(role) {
     return ethers.utils.keccak256(ethers.utils.toUtf8Bytes(roleName));
 }
 
-
 async function readFromFile(network) {
     let p = path.join(__dirname, "../deployments/contractAddress.json");
     let deploy;
@@ -91,7 +89,6 @@ async function readFromFile(network) {
 
     return deploy;
 }
-
 
 async function getContractList(chainId) {
     let p = path.join(__dirname, "../configs/contractConfig.json");
@@ -157,7 +154,6 @@ function needVerify(chainId) {
     }
 }
 
-
 module.exports = {
     writeToFile,
     readFromFile,
@@ -167,5 +163,5 @@ module.exports = {
     getRole,
     getContractList,
     getMessageFeeConfig,
-    needVerify
+    needVerify,
 };
