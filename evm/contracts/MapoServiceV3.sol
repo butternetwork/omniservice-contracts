@@ -197,6 +197,27 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
         _transferIn(outEvent);
     }
 
+    function verifyProofDataWithIndex(
+        uint256 _chainId,
+        uint256 _logIndex,
+        bytes memory _receiptProof
+    ) external virtual nonReentrant whenNotPaused {
+        require(_chainId == relayChainId, "MOSV3: Invalid chain id");
+        (bool success, string memory message, bytes memory logArray) = lightNode.verifyProofDataWithCache(_receiptProof);
+        require(success, message);
+
+        LogDecoder.txLog memory log = LogDecoder.decodeTxLog(logArray, _logIndex);
+        require(relayContract == log.addr, "MOSV3: Invalid relay");
+
+        bytes32 topic = abi.decode(log.topics[0], (bytes32));
+        require(topic == EvmDecoder.MAP_MESSAGE_TOPIC, "MOSV3: Invalid topic");
+
+        (, IEvent.dataOutEvent memory outEvent) = EvmDecoder.decodeDataLog(log);
+        require(outEvent.toChain == selfChainId, "MOSV3: Invalid target chain id");
+
+        _verifyProofDataIn(outEvent);
+    }
+
     function retryMessageIn(
         uint256 _fromChain,
         bytes32 _orderId,
@@ -213,8 +234,7 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
         });
         delete storedCalldataList[_orderId];
         MessageData memory msgData = abi.decode(_messageData, (MessageData));
-        msgData.gasLimit = gasleft();
-        _messageIn(outEvent, msgData);
+        _retryMessageIn(outEvent, msgData);
 
     }
 
@@ -253,6 +273,20 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
     function _transferIn(IEvent.dataOutEvent memory _outEvent) internal checkOrder(_outEvent.orderId) {
         MessageData memory msgData = abi.decode(_outEvent.messageData, (MessageData));
         _messageIn(_outEvent, msgData);
+    }
+
+    function _verifyProofDataIn(IEvent.dataOutEvent memory _outEvent) internal checkOrder(_outEvent.orderId) {
+        //MessageData memory msgData = abi.decode(_outEvent.messageData, (MessageData));
+        storedCalldataList[_outEvent.orderId] = keccak256(abi.encodePacked(_outEvent.fromChain,_outEvent.fromAddress,_outEvent.messageData));
+        emit mapMessageIn(
+            _outEvent.fromChain,
+            _outEvent.toChain,
+            _outEvent.orderId,
+            _outEvent.fromAddress,
+            _outEvent.messageData,
+            false,
+            bytes("OnlyVerifyProof")
+        );
     }
 
     function _messageIn(IEvent.dataOutEvent memory _outEvent, MessageData memory _msgData) internal {
@@ -352,6 +386,49 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
             );
         }
     }
+
+    function _retryMessageIn(IEvent.dataOutEvent memory _outEvent, MessageData memory _msgData) internal {
+        address target = Utils.fromBytes(_msgData.target);
+        if (_msgData.msgType == MessageType.CALLDATA) {
+            require (callerList[target][_outEvent.fromChain][_outEvent.fromAddress],"MOSV3: FromAddressNotCaller");
+                (bool success, ) = target.call(_msgData.payload);
+                if (success) {
+                    emit mapMessageIn(
+                        _outEvent.fromChain,
+                        _outEvent.toChain,
+                        _outEvent.orderId,
+                        _outEvent.fromAddress,
+                        _msgData.payload,
+                        true,
+                        bytes("")
+                    );
+                } else {
+                    revert("MOSV3: MessageCallError");
+                }
+        } else if (_msgData.msgType == MessageType.MESSAGE) {
+            require (AddressUpgradeable.isContract(target),"MOSV3: NoContractAddress");
+                IMapoExecutor(target).mapoExecute(
+                    _outEvent.fromChain,
+                    _outEvent.toChain,
+                    _outEvent.fromAddress,
+                    _outEvent.orderId,
+                    _msgData.payload
+                );
+
+                emit mapMessageIn(
+                    _outEvent.fromChain,
+                    _outEvent.toChain,
+                    _outEvent.orderId,
+                    _outEvent.fromAddress,
+                    _msgData.payload,
+                    true,
+                    bytes("")
+                );
+        } else {
+            revert("MOSV3: MessageTypeError");
+        }
+    }
+
 
     function _notifyLightClient(bytes memory _data) internal {
         lightNode.notifyLightClient(address(this), _data);
