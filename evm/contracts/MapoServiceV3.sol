@@ -215,7 +215,26 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
         (, IEvent.dataOutEvent memory outEvent) = EvmDecoder.decodeDataLog(log);
         require(outEvent.toChain == selfChainId, "MOSV3: Invalid target chain id");
 
-        _verifyProofDataIn(outEvent);
+        storedCalldataList[outEvent.orderId] = keccak256(abi.encodePacked(outEvent.fromChain,outEvent.fromAddress,outEvent.messageData));
+    }
+
+    function onlyMessageIn(
+        uint256 _fromChain,
+        bytes32 _orderId,
+        bytes calldata _fromAddress,
+        bytes calldata _messageData
+    )external virtual checkOrder(_orderId) nonReentrant whenNotPaused {
+        require(keccak256(abi.encodePacked(_fromChain,_fromAddress,_messageData)) == storedCalldataList[_orderId],"MOSV3: error messageDate");
+        IEvent.dataOutEvent memory outEvent = IEvent.dataOutEvent({
+            orderId:_orderId,
+            fromChain:_fromChain,
+            toChain:uint256(selfChainId),
+            fromAddress:_fromAddress,
+            messageData:_messageData
+        });
+        delete storedCalldataList[_orderId];
+        MessageData memory msgData = abi.decode(_messageData, (MessageData));
+        _messageIn(outEvent, msgData);
     }
 
     function retryMessageIn(
@@ -235,7 +254,6 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
         delete storedCalldataList[_orderId];
         MessageData memory msgData = abi.decode(_messageData, (MessageData));
         _retryMessageIn(outEvent, msgData);
-
     }
 
     function _transferOut(uint256 _toChain, bytes memory _messageData, address _feeToken) internal returns (bytes32) {
@@ -273,20 +291,6 @@ contract MapoServiceV3 is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV
     function _transferIn(IEvent.dataOutEvent memory _outEvent) internal checkOrder(_outEvent.orderId) {
         MessageData memory msgData = abi.decode(_outEvent.messageData, (MessageData));
         _messageIn(_outEvent, msgData);
-    }
-
-    function _verifyProofDataIn(IEvent.dataOutEvent memory _outEvent) internal checkOrder(_outEvent.orderId) {
-        //MessageData memory msgData = abi.decode(_outEvent.messageData, (MessageData));
-        storedCalldataList[_outEvent.orderId] = keccak256(abi.encodePacked(_outEvent.fromChain,_outEvent.fromAddress,_outEvent.messageData));
-        emit mapMessageIn(
-            _outEvent.fromChain,
-            _outEvent.toChain,
-            _outEvent.orderId,
-            _outEvent.fromAddress,
-            _outEvent.messageData,
-            false,
-            bytes("OnlyVerifyProof")
-        );
     }
 
     function _messageIn(IEvent.dataOutEvent memory _outEvent, MessageData memory _msgData) internal {
