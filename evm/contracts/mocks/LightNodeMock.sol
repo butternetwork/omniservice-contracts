@@ -5,9 +5,7 @@ pragma solidity ^0.8.0;
 import "@mapprotocol/protocol/contracts/lib/RLPEncode.sol";
 
 contract LightNode {
-
     event ClientNotifySend(address indexed sender, uint256 indexed blockHeight, bytes notifyData);
-
 
     function verifyProofData(
         bytes memory _receiptProof

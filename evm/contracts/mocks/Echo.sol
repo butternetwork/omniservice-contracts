@@ -29,16 +29,15 @@ contract Echo is Ownable, IMapoExecutor {
         string memory val = "hellCallData";
 
         IMOSV3.MessageData memory msgData = IMOSV3.MessageData({
-            relay:true,
-            msgType:IMOSV3.MessageType.MESSAGE,
-            target:bytes(""),
-            payload:abi.encode(key, val),
-            gasLimit:500000,
-            value:0
+            relay: true,
+            msgType: IMOSV3.MessageType.MESSAGE,
+            target: bytes(""),
+            payload: abi.encode(key, val),
+            gasLimit: 500000,
+            value: 0
         });
 
         newData = abi.encode(msgData);
-
 
         return newData;
     }
@@ -104,12 +103,12 @@ contract Echo is Ownable, IMapoExecutor {
 
         string memory val = "hello-Target-address";
         IMOSV3.MessageData memory msgData = IMOSV3.MessageData({
-            relay:true,
-            msgType:IMOSV3.MessageType.MESSAGE,
-            target:bytes(""),
-            payload:abi.encode(val, key),
-            gasLimit:500000,
-            value:0
+            relay: true,
+            msgType: IMOSV3.MessageType.MESSAGE,
+            target: bytes(""),
+            payload: abi.encode(val, key),
+            gasLimit: 500000,
+            value: 0
         });
 
         newData = abi.encode(msgData);
@@ -117,4 +116,3 @@ contract Echo is Ownable, IMapoExecutor {
         return newData;
     }
 }
-
