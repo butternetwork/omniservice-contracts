@@ -9,9 +9,6 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@mapprotocol/protocol/contracts/interface/ILightNode.sol";
-import "@mapprotocol/protocol/contracts/utils/Utils.sol";
-import "@mapprotocol/protocol/contracts/lib/LogDecoder.sol";
 import "../interface/IFeeService.sol";
 import "../interface/IMOSV3.sol";
 import "../interface/IMapoExecutor.sol";
@@ -25,7 +22,6 @@ abstract contract OmniServiceCore is ReentrancyGuardUpgradeable, PausableUpgrade
     uint256 public constant gasLimitMin = 21000;
     uint256 public constant gasLimitMax = 10000000;
     uint public nonce;
-    address public wToken; // native wrapped token
 
     IFeeService public feeService;
 
@@ -33,7 +29,7 @@ abstract contract OmniServiceCore is ReentrancyGuardUpgradeable, PausableUpgrade
 
     mapping(address => mapping(uint256 => mapping(bytes => bool))) public callerList;
 
-    mapping(bytes32 => bytes32) public storedCalldataList;
+    mapping(bytes32 => bytes32) public storedMessageList;
 
     event mapTransferExecute(uint256 indexed fromChain, uint256 indexed toChain, address indexed from);
 
@@ -41,8 +37,7 @@ abstract contract OmniServiceCore is ReentrancyGuardUpgradeable, PausableUpgrade
 
     event AddRemoteCaller(address indexed target, uint256 remoteChainId, bytes remoteAddress, bool tag);
 
-    function initialize(address _wToken, address _owner) public virtual initializer checkAddress(_wToken) {
-        wToken = _wToken;
+    function initialize(address _owner) public virtual initializer {
         _changeAdmin(_owner);
         __ReentrancyGuard_init();
         __Pausable_init();
@@ -134,20 +129,14 @@ abstract contract OmniServiceCore is ReentrancyGuardUpgradeable, PausableUpgrade
         bytes calldata _fromAddress,
         bytes calldata _messageData
     ) external virtual nonReentrant whenNotPaused {
-        require(
-            keccak256(abi.encodePacked(_fromChain, _fromAddress, _messageData)) == storedCalldataList[_orderId],
-            "MOSV3: error messageData"
+        (IEvent.dataOutEvent memory outEvent, MessageData memory msgData) = _getStoredMessage(
+            _fromChain,
+            _orderId,
+            _fromAddress,
+            _messageData
         );
-        IEvent.dataOutEvent memory outEvent = IEvent.dataOutEvent({
-            orderId: _orderId,
-            fromChain: _fromChain,
-            toChain: uint256(selfChainId),
-            fromAddress: _fromAddress,
-            messageData: _messageData
-        });
-        delete storedCalldataList[_orderId];
-        MessageData memory msgData = abi.decode(_messageData, (MessageData));
-        _retryMessageIn(outEvent, msgData);
+
+        _tryMessageIn(outEvent, msgData, true);
     }
 
     function _transferOut(uint256 _toChain, bytes memory _messageData, address _feeToken) internal returns (bytes32) {
@@ -164,7 +153,6 @@ abstract contract OmniServiceCore is ReentrancyGuardUpgradeable, PausableUpgrade
         (uint256 amount, address receiverFeeAddress) = _getMessageFee(_toChain, _feeToken, msgData.gasLimit);
         if (_feeToken == address(0)) {
             require(msg.value >= amount, "MOSV3: Need message fee");
-
             if (msg.value > 0) {
                 payable(receiverFeeAddress).transfer(msg.value);
             }
@@ -172,7 +160,7 @@ abstract contract OmniServiceCore is ReentrancyGuardUpgradeable, PausableUpgrade
             SafeERC20Upgradeable.safeTransferFrom(IERC20Upgradeable(_feeToken), msg.sender, receiverFeeAddress, amount);
         }
 
-        bytes32 orderId = _getOrderID(msg.sender, msgData.target, _toChain);
+        bytes32 orderId = _getOrderId(msg.sender, msgData.target, _toChain);
 
         bytes memory fromAddress = Utils.toBytes(msg.sender);
 
@@ -181,102 +169,76 @@ abstract contract OmniServiceCore is ReentrancyGuardUpgradeable, PausableUpgrade
         return orderId;
     }
 
-    function _messageIn(IEvent.dataOutEvent memory _outEvent, MessageData memory _msgData) internal {
+    function _messageExecute(
+        IEvent.dataOutEvent memory _outEvent,
+        MessageData memory _msgData,
+        bool _retry
+    ) internal returns (bool, bytes memory) {
+        uint256 gasLimit = _msgData.gasLimit;
+        if (_retry) {
+            gasLimit = gasleft();
+        }
         address target = Utils.fromBytes(_msgData.target);
+        if (!AddressUpgradeable.isContract(target)) {
+            return (false, bytes("NotContract"));
+        }
         if (_msgData.msgType == MessageType.CALLDATA) {
-            if (callerList[target][_outEvent.fromChain][_outEvent.fromAddress]) {
-                (bool success, bytes memory reason) = target.call{gas: _msgData.gasLimit}(_msgData.payload);
-                if (success) {
-                    emit mapMessageIn(
-                        _outEvent.fromChain,
-                        _outEvent.toChain,
-                        _outEvent.orderId,
-                        _outEvent.fromAddress,
-                        _msgData.payload,
-                        true,
-                        bytes("")
-                    );
-                } else {
-                    _storeMessageData(_outEvent, reason);
-                }
+            if (!callerList[target][_outEvent.fromChain][_outEvent.fromAddress]) {
+                return (false, bytes("InvalidCaller"));
+            }
+            (bool success, bytes memory returnData) = target.call{gas: gasLimit}(_msgData.payload);
+            if (!success) {
+                return (false, returnData);
             } else {
-                _storeMessageData(_outEvent, bytes("FromAddressNotCaller"));
+                bytes memory data = abi.decode(returnData, (bytes));
+                return (true, data);
             }
         } else if (_msgData.msgType == MessageType.MESSAGE) {
-            if (AddressUpgradeable.isContract(target)) {
-                try
-                    IMapoExecutor(target).mapoExecute{gas: _msgData.gasLimit}(
-                        _outEvent.fromChain,
-                        _outEvent.toChain,
-                        _outEvent.fromAddress,
-                        _outEvent.orderId,
-                        _msgData.payload
-                    )
-                {
-                    emit mapMessageIn(
-                        _outEvent.fromChain,
-                        _outEvent.toChain,
-                        _outEvent.orderId,
-                        _outEvent.fromAddress,
-                        _msgData.payload,
-                        true,
-                        bytes("")
-                    );
-                } catch (bytes memory reason) {
-                    _storeMessageData(_outEvent, reason);
-                }
-            } else {
-                _storeMessageData(_outEvent, bytes("NotContractAddress"));
+            try
+                IMapoExecutor(target).mapoExecute{gas: gasLimit}(
+                    _outEvent.fromChain,
+                    _outEvent.toChain,
+                    _outEvent.fromAddress,
+                    _outEvent.orderId,
+                    _msgData.payload
+                )
+            returns (bytes memory returnData) {
+                return (true, returnData);
+            } catch (bytes memory reason) {
+                return (false, reason);
             }
         } else {
-            _storeMessageData(_outEvent, bytes("MessageTypeError"));
+            return (false, bytes("InvalidMessageType"));
         }
     }
 
-    function _retryMessageIn(IEvent.dataOutEvent memory _outEvent, MessageData memory _msgData) internal {
-        address target = Utils.fromBytes(_msgData.target);
-        if (_msgData.msgType == MessageType.CALLDATA) {
-            require(callerList[target][_outEvent.fromChain][_outEvent.fromAddress], "MOSV3: FromAddressNotCaller");
-            (bool success, ) = target.call(_msgData.payload);
-            if (success) {
-                emit mapMessageIn(
-                    _outEvent.fromChain,
-                    _outEvent.toChain,
-                    _outEvent.orderId,
-                    _outEvent.fromAddress,
-                    _msgData.payload,
-                    true,
-                    bytes("")
-                );
-            } else {
-                revert("MOSV3: MessageCallError");
-            }
-        } else if (_msgData.msgType == MessageType.MESSAGE) {
-            require(AddressUpgradeable.isContract(target), "MOSV3: NotContractAddress");
-            IMapoExecutor(target).mapoExecute(
-                _outEvent.fromChain,
-                _outEvent.toChain,
-                _outEvent.fromAddress,
-                _outEvent.orderId,
-                _msgData.payload
-            );
-
+    function _messageIn(IEvent.dataOutEvent memory _outEvent, MessageData memory _msgData, bool _retry) internal {
+        (bool success, bytes memory returnData) = _messageExecute(_outEvent, _msgData, _retry);
+        if (success) {
             emit mapMessageIn(
                 _outEvent.fromChain,
                 _outEvent.toChain,
                 _outEvent.orderId,
                 _outEvent.fromAddress,
-                _msgData.payload,
+                bytes(""),
                 true,
                 bytes("")
             );
         } else {
-            revert("MOSV3: MessageTypeError");
+            _storeMessageData(_outEvent, returnData);
         }
     }
 
+    function _tryMessageIn(
+        IEvent.dataOutEvent memory _outEvent,
+        MessageData memory _msgData,
+        bool _retry
+    ) internal virtual {
+        _messageIn(_outEvent, _msgData, true);
+    }
+
     function _storeMessageData(IEvent.dataOutEvent memory _outEvent, bytes memory _reason) internal {
-        storedCalldataList[_outEvent.orderId] = keccak256(
+        storedMessageList[_outEvent.orderId] = keccak256(
             abi.encodePacked(_outEvent.fromChain, _outEvent.fromAddress, _outEvent.messageData)
         );
         emit mapMessageIn(
@@ -290,7 +252,28 @@ abstract contract OmniServiceCore is ReentrancyGuardUpgradeable, PausableUpgrade
         );
     }
 
-    function _getOrderID(address _from, bytes memory _to, uint _toChain) internal returns (bytes32) {
+    function _getStoredMessage(
+        uint256 _fromChain,
+        bytes32 _orderId,
+        bytes calldata _fromAddress,
+        bytes calldata _messageData
+    ) internal returns (IEvent.dataOutEvent memory outEvent, MessageData memory msgData) {
+        require(
+            keccak256(abi.encodePacked(_fromChain, _fromAddress, _messageData)) == storedMessageList[_orderId],
+            "MOSV3: invalid messageData"
+        );
+        outEvent = IEvent.dataOutEvent({
+            orderId: _orderId,
+            fromChain: _fromChain,
+            toChain: selfChainId,
+            fromAddress: _fromAddress,
+            messageData: _messageData
+        });
+        delete storedMessageList[_orderId];
+        msgData = abi.decode(_messageData, (MessageData));
+    }
+
+    function _getOrderId(address _from, bytes memory _to, uint _toChain) internal returns (bytes32) {
         return keccak256(abi.encodePacked(address(this), nonce++, selfChainId, _toChain, _from, _to));
     }
 

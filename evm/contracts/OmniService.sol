@@ -2,26 +2,13 @@
 
 pragma solidity 0.8.20;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@mapprotocol/protocol/contracts/interface/ILightNode.sol";
 import "@mapprotocol/protocol/contracts/utils/Utils.sol";
 import "@mapprotocol/protocol/contracts/lib/LogDecoder.sol";
-import "./interface/IFeeService.sol";
-import "./interface/IMOSV3.sol";
-import "./interface/IMapoExecutor.sol";
 import "./utils/EvmDecoder.sol";
 import "./abstract/OmniServiceCore.sol";
 
 contract OmniService is OmniServiceCore {
-    using SafeMathUpgradeable for uint;
-    using AddressUpgradeable for address;
-
     uint256 public relayChainId;
     address public relayContract;
     ILightNode public lightNode;
@@ -90,10 +77,10 @@ contract OmniService is OmniServiceCore {
         uint256 _logIndex,
         bytes memory _receiptProof
     ) external virtual override nonReentrant whenNotPaused {
-        IEvent.dataOutEvent memory outEvent = _transferIn(_chainId, _logIndex, _receiptProof);
+        IEvent.dataOutEvent memory outEvent = _transferInVerify(_chainId, _logIndex, _receiptProof);
 
         MessageData memory msgData = abi.decode(outEvent.messageData, (MessageData));
-        _messageIn(outEvent, msgData);
+        _messageIn(outEvent, msgData, false);
     }
 
     function transferInVerify(
@@ -101,12 +88,11 @@ contract OmniService is OmniServiceCore {
         uint256 _logIndex,
         bytes memory _receiptProof
     ) external virtual nonReentrant whenNotPaused {
-        IEvent.dataOutEvent memory outEvent = _transferIn(_chainId, _logIndex, _receiptProof);
+        IEvent.dataOutEvent memory outEvent = _transferInVerify(_chainId, _logIndex, _receiptProof);
 
-        storedCalldataList[outEvent.orderId] = keccak256(
+        storedMessageList[outEvent.orderId] = keccak256(
             abi.encodePacked(outEvent.fromChain, outEvent.fromAddress, outEvent.messageData)
         );
-
         emit MessageVerified(
             outEvent.fromChain,
             outEvent.toChain,
@@ -122,45 +108,16 @@ contract OmniService is OmniServiceCore {
         bytes calldata _fromAddress,
         bytes calldata _messageData
     ) external virtual checkOrder(_orderId) nonReentrant whenNotPaused {
-        require(
-            keccak256(abi.encodePacked(_fromChain, _fromAddress, _messageData)) == storedCalldataList[_orderId],
-            "MOSV3: invalid messageData"
+        (IEvent.dataOutEvent memory outEvent, MessageData memory msgData) = _getStoredMessage(
+            _fromChain,
+            _orderId,
+            _fromAddress,
+            _messageData
         );
-        IEvent.dataOutEvent memory outEvent = IEvent.dataOutEvent({
-            orderId: _orderId,
-            fromChain: _fromChain,
-            toChain: selfChainId,
-            fromAddress: _fromAddress,
-            messageData: _messageData
-        });
-        delete storedCalldataList[_orderId];
-        MessageData memory msgData = abi.decode(_messageData, (MessageData));
-        _messageIn(outEvent, msgData);
+        _messageIn(outEvent, msgData, false);
     }
 
-    function retryMessageIn(
-        uint256 _fromChain,
-        bytes32 _orderId,
-        bytes calldata _fromAddress,
-        bytes calldata _messageData
-    ) external virtual override nonReentrant whenNotPaused {
-        require(
-            keccak256(abi.encodePacked(_fromChain, _fromAddress, _messageData)) == storedCalldataList[_orderId],
-            "MOSV3: error messageDate"
-        );
-        IEvent.dataOutEvent memory outEvent = IEvent.dataOutEvent({
-            orderId: _orderId,
-            fromChain: _fromChain,
-            toChain: uint256(selfChainId),
-            fromAddress: _fromAddress,
-            messageData: _messageData
-        });
-        delete storedCalldataList[_orderId];
-        MessageData memory msgData = abi.decode(_messageData, (MessageData));
-        _retryMessageIn(outEvent, msgData);
-    }
-
-    function _transferIn(
+    function _transferInVerify(
         uint256 _chainId,
         uint256 _logIndex,
         bytes memory _receiptProof
@@ -178,7 +135,7 @@ contract OmniService is OmniServiceCore {
         require(topic == EvmDecoder.MAP_MESSAGE_TOPIC, "MOSV3: Invalid topic");
 
         (, outEvent) = EvmDecoder.decodeDataLog(log);
-        require(outEvent.toChain == selfChainId, "MOSV3: Invalid target chain id");
+        require(outEvent.toChain == selfChainId, "MOSV3: Invalid target chain");
     }
 
     function _notifyLightClient(bytes memory _data) internal {

@@ -5,7 +5,6 @@ pragma solidity 0.8.20;
 import "@mapprotocol/protocol/contracts/interface/ILightClientManager.sol";
 import "./utils/NearDecoder.sol";
 import "./utils/EvmDecoder.sol";
-
 import "./abstract/OmniServiceCore.sol";
 
 contract OmniServiceRelay is OmniServiceCore {
@@ -80,40 +79,21 @@ contract OmniServiceRelay is OmniServiceCore {
             require(_chainId == outEvent.fromChain, "MOSV3: Invalid chain id");
 
             MessageData memory msgData = abi.decode(outEvent.messageData, (MessageData));
-            if (outEvent.toChain == selfChainId) {
-                _messageIn(outEvent, msgData);
-            } else {
-                _messageRelay(outEvent, msgData);
-            }
+            _tryMessageIn(outEvent, msgData, false);
         } else {
             require(false, "MOSV3: Invalid chain type");
         }
     }
 
-    function retryMessageIn(
-        uint256 _fromChain,
-        bytes32 _orderId,
-        bytes calldata _fromAddress,
-        bytes calldata _messageData
-    ) external override nonReentrant whenNotPaused {
-        require(
-            keccak256(abi.encodePacked(_fromChain, _fromAddress, _messageData)) == storedCalldataList[_orderId],
-            "MOSV3: error messageDate"
-        );
-        IEvent.dataOutEvent memory outEvent = IEvent.dataOutEvent({
-            orderId: _orderId,
-            fromChain: _fromChain,
-            toChain: uint256(selfChainId),
-            fromAddress: _fromAddress,
-            messageData: _messageData
-        });
-        delete storedCalldataList[_orderId];
-
-        MessageData memory msgData = abi.decode(_messageData, (MessageData));
-        if (msgData.relay) {
-            _messageRelay(outEvent, msgData);
+    function _tryMessageIn(
+        IEvent.dataOutEvent memory _outEvent,
+        MessageData memory _msgData,
+        bool _retry
+    ) internal override {
+        if (_outEvent.toChain == selfChainId) {
+            _messageIn(_outEvent, _msgData, _retry);
         } else {
-            _retryMessageIn(outEvent, msgData);
+            _messageRelay(_outEvent, _msgData);
         }
     }
 
@@ -122,55 +102,18 @@ contract OmniServiceRelay is OmniServiceCore {
             _notifyMessageOut(_outEvent, _outEvent.messageData);
             return;
         }
-        address target = Utils.fromBytes(_msgData.target);
-        if (_msgData.msgType == MessageType.CALLDATA) {
-            if (callerList[target][_outEvent.fromChain][_outEvent.fromAddress]) {
-                // todo: try catch
-                (bool success, bytes memory returnData) = target.call(_msgData.payload);
-                if (success) {
-                    bytes memory data = abi.decode(returnData, (bytes));
-                    MessageData memory msgData = abi.decode(data, (MessageData));
-                    if (msgData.gasLimit != _msgData.gasLimit || msgData.value != 0) {
-                        msgData.gasLimit = _msgData.gasLimit;
-                        msgData.value = 0;
-                        returnData = abi.encode(msgData);
-                    }
-
-                    _notifyMessageOut(_outEvent, returnData);
-                } else {
-                    _storeMessageData(_outEvent, returnData);
-                }
-            } else {
-                _storeMessageData(_outEvent, bytes("FromAddressNotCaller"));
-            }
-        } else if (_msgData.msgType == MessageType.MESSAGE) {
-            if (AddressUpgradeable.isContract(target)) {
-                try
-                    IMapoExecutor(target).mapoExecute(
-                        _outEvent.fromChain,
-                        _outEvent.toChain,
-                        _outEvent.fromAddress,
-                        _outEvent.orderId,
-                        _msgData.payload
-                    )
-                returns (bytes memory newMessageData) {
-                    MessageData memory msgData = abi.decode(newMessageData, (MessageData));
-                    if (msgData.gasLimit != _msgData.gasLimit || msgData.value != 0) {
-                        msgData.gasLimit = _msgData.gasLimit;
-                        msgData.value = 0;
-                        newMessageData = abi.encode(msgData);
-                    }
-
-                    _notifyMessageOut(_outEvent, newMessageData);
-                } catch (bytes memory reason) {
-                    _storeMessageData(_outEvent, reason);
-                }
-            } else {
-                _storeMessageData(_outEvent, bytes("NoContractAddress"));
-            }
-        } else {
-            _storeMessageData(_outEvent, bytes("MessageTypeError"));
+        (bool success, bytes memory returnData) = _messageExecute(_outEvent, _msgData, true);
+        if (!success) {
+            _storeMessageData(_outEvent, returnData);
+            return;
         }
+        MessageData memory msgData = abi.decode(returnData, (MessageData));
+        if (msgData.gasLimit != _msgData.gasLimit || msgData.value != 0) {
+            msgData.gasLimit = _msgData.gasLimit;
+            msgData.value = 0;
+            returnData = abi.encode(msgData);
+        }
+        _notifyMessageOut(_outEvent, returnData);
     }
 
     function _notifyMessageOut(IEvent.dataOutEvent memory _outEvent, bytes memory _payload) internal {
