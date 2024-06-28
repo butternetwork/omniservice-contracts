@@ -24,12 +24,12 @@ contract OmniService is OmniServiceCore {
         bytes messageData
     );
 
-    function setLightClient(address _lightNode) external onlyOwner checkAddress(_lightNode) {
+    function setLightClient(address _lightNode) external onlyRole(MANAGER_ROLE) checkAddress(_lightNode) {
         lightNode = ILightNode(_lightNode);
         emit SetLightClient(_lightNode);
     }
 
-    function setRelayContract(uint256 _chainId, address _relay) external onlyOwner checkAddress(_relay) {
+    function setRelayContract(uint256 _chainId, address _relay) external onlyRole(MANAGER_ROLE) checkAddress(_relay) {
         relayContract = _relay;
         relayChainId = _chainId;
         emit SetRelayContract(_chainId, _relay);

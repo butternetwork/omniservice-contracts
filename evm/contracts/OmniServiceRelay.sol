@@ -16,12 +16,14 @@ contract OmniServiceRelay is OmniServiceCore {
     event SetLightClientManager(address lightClient);
     event RegisterChain(uint256 _chainId, bytes _address, ChainType _type);
 
-    function setLightClientManager(address _managerAddress) external onlyOwner checkAddress(_managerAddress) {
+    function setLightClientManager(
+        address _managerAddress
+    ) external onlyRole(MANAGER_ROLE) checkAddress(_managerAddress) {
         lightClientManager = ILightClientManager(_managerAddress);
         emit SetLightClientManager(_managerAddress);
     }
 
-    function registerChain(uint256 _chainId, bytes memory _address, ChainType _type) external onlyOwner {
+    function registerChain(uint256 _chainId, bytes memory _address, ChainType _type) external onlyRole(MANAGER_ROLE) {
         mosContracts[_chainId] = _address;
         chainTypes[_chainId] = _type;
         emit RegisterChain(_chainId, _address, _type);

@@ -7,21 +7,30 @@ import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "../interface/IFeeService.sol";
 import "../interface/IMOSV3.sol";
 import "../interface/IMapoExecutor.sol";
 import "../utils/EvmDecoder.sol";
 
-abstract contract OmniServiceCore is ReentrancyGuardUpgradeable, PausableUpgradeable, IMOSV3, UUPSUpgradeable {
+abstract contract OmniServiceCore is
+    ReentrancyGuardUpgradeable,
+    PausableUpgradeable,
+    IMOSV3,
+    UUPSUpgradeable,
+    AccessControlEnumerableUpgradeable
+{
     using SafeMathUpgradeable for uint;
     using AddressUpgradeable for address;
 
-    uint public immutable selfChainId = block.chainid;
+    bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+
+    uint256 public immutable selfChainId = block.chainid;
     uint256 public constant gasLimitMin = 21000;
     uint256 public constant gasLimitMax = 10000000;
-    uint public nonce;
+    uint256 public nonce;
 
     IFeeService public feeService;
 
@@ -37,10 +46,14 @@ abstract contract OmniServiceCore is ReentrancyGuardUpgradeable, PausableUpgrade
 
     event AddRemoteCaller(address indexed target, uint256 remoteChainId, bytes remoteAddress, bool tag);
 
-    function initialize(address _owner) public virtual initializer {
-        _changeAdmin(_owner);
-        __ReentrancyGuard_init();
+    function initialize(address _owner) public virtual initializer checkAddress(_owner) {
+        // _changeAdmin(_owner);
         __Pausable_init();
+        __ReentrancyGuard_init();
+        __AccessControlEnumerable_init();
+        _grantRole(DEFAULT_ADMIN_ROLE, _owner);
+        _grantRole(MANAGER_ROLE, _owner);
+        _grantRole(UPGRADER_ROLE, _owner);
     }
 
     receive() external payable {}
@@ -56,16 +69,13 @@ abstract contract OmniServiceCore is ReentrancyGuardUpgradeable, PausableUpgrade
         _;
     }
 
-    modifier onlyOwner() {
-        require(msg.sender == _getAdmin(), "MOSV3: Only admin");
-        _;
-    }
-
-    function trigger() external onlyOwner {
+    function trigger() external onlyRole(MANAGER_ROLE) {
         paused() ? _unpause() : _pause();
     }
 
-    function setFeeService(address _feeServiceAddress) external onlyOwner checkAddress(_feeServiceAddress) {
+    function setFeeService(
+        address _feeServiceAddress
+    ) external onlyRole(MANAGER_ROLE) checkAddress(_feeServiceAddress) {
         feeService = IFeeService(_feeServiceAddress);
         emit SetFeeService(_feeServiceAddress);
     }
@@ -74,7 +84,7 @@ abstract contract OmniServiceCore is ReentrancyGuardUpgradeable, PausableUpgrade
         address _token,
         address payable _receiver,
         uint256 _amount
-    ) external onlyOwner checkAddress(_receiver) {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) checkAddress(_receiver) {
         require(_amount > 0, "MOSV3: Withdraw amount error");
         if (_token == address(0)) {
             _receiver.transfer(_amount);
@@ -297,15 +307,7 @@ abstract contract OmniServiceCore is ReentrancyGuardUpgradeable, PausableUpgrade
 
     /** UUPS *********************************************************/
     function _authorizeUpgrade(address) internal view override {
-        require(msg.sender == _getAdmin(), "MOSV3: Only admin can upgrade");
-    }
-
-    function changeAdmin(address _admin) external onlyOwner checkAddress(_admin) {
-        _changeAdmin(_admin);
-    }
-
-    function getAdmin() external view returns (address) {
-        return _getAdmin();
+        require(hasRole(UPGRADER_ROLE, msg.sender), "MOSV3: only admin can upgrade");
     }
 
     function getImplementation() external view returns (address) {
