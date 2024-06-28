@@ -115,29 +115,30 @@ abstract contract OmniServiceCore is ReentrancyGuardUpgradeable, PausableUpgrade
         uint256 _toChain,
         bytes memory _messageData,
         address _feeToken
-    ) external payable virtual whenNotPaused returns (bytes32) {}
+    ) external payable virtual whenNotPaused returns (bytes32) {
+        bytes32 orderId = _transferOut(_toChain, _messageData, _feeToken);
 
-    function transferInWithIndex(
-        uint256 _chainId,
-        uint256 _logIndex,
-        bytes memory _receiptProof
-    ) external virtual nonReentrant whenNotPaused {}
+        _notifyLightClient(_toChain, bytes(""));
 
-    function retryMessageIn(
-        uint256 _fromChain,
-        bytes32 _orderId,
-        bytes calldata _fromAddress,
-        bytes calldata _messageData
-    ) external virtual nonReentrant whenNotPaused {
-        (IEvent.dataOutEvent memory outEvent, MessageData memory msgData) = _getStoredMessage(
-            _fromChain,
-            _orderId,
-            _fromAddress,
-            _messageData
-        );
-
-        _tryMessageIn(outEvent, msgData, true);
+        return orderId;
     }
+
+    function messageOut(
+        bytes32 _transferId,
+        address _initiator, // initiator address
+        address _referrer,
+        uint256 _toChain,
+        bytes memory _messageData,
+        address _feeToken
+    ) external payable virtual whenNotPaused returns (bytes32) {
+        bytes32 orderId = _transferOut(_toChain, _messageData, _feeToken);
+
+        _notifyLightClient(_toChain, bytes(""));
+
+        return orderId;
+    }
+
+    function _notifyLightClient(uint256 _chainId, bytes memory _data) internal virtual {}
 
     function _transferOut(uint256 _toChain, bytes memory _messageData, address _feeToken) internal returns (bytes32) {
         require(_toChain != selfChainId, "MOSV3: Only other chain");
@@ -172,10 +173,10 @@ abstract contract OmniServiceCore is ReentrancyGuardUpgradeable, PausableUpgrade
     function _messageExecute(
         IEvent.dataOutEvent memory _outEvent,
         MessageData memory _msgData,
-        bool _retry
+        bool _gasleft
     ) internal returns (bool, bytes memory) {
         uint256 gasLimit = _msgData.gasLimit;
-        if (_retry) {
+        if (_gasleft) {
             gasLimit = gasleft();
         }
         address target = Utils.fromBytes(_msgData.target);
@@ -212,8 +213,8 @@ abstract contract OmniServiceCore is ReentrancyGuardUpgradeable, PausableUpgrade
         }
     }
 
-    function _messageIn(IEvent.dataOutEvent memory _outEvent, MessageData memory _msgData, bool _retry) internal {
-        (bool success, bytes memory returnData) = _messageExecute(_outEvent, _msgData, _retry);
+    function _messageIn(IEvent.dataOutEvent memory _outEvent, MessageData memory _msgData, bool _gasleft, bool _revert) internal {
+        (bool success, bytes memory returnData) = _messageExecute(_outEvent, _msgData, _gasleft);
         if (success) {
             emit mapMessageIn(
                 _outEvent.fromChain,
@@ -225,16 +226,12 @@ abstract contract OmniServiceCore is ReentrancyGuardUpgradeable, PausableUpgrade
                 bytes("")
             );
         } else {
-            _storeMessageData(_outEvent, returnData);
+            if (_revert) {
+                revert(string(returnData));
+            } else {
+                _storeMessageData(_outEvent, returnData);
+            }
         }
-    }
-
-    function _tryMessageIn(
-        IEvent.dataOutEvent memory _outEvent,
-        MessageData memory _msgData,
-        bool _retry
-    ) internal virtual {
-        _messageIn(_outEvent, _msgData, true);
     }
 
     function _storeMessageData(IEvent.dataOutEvent memory _outEvent, bytes memory _reason) internal {

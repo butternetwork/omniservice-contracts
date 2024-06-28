@@ -37,23 +37,11 @@ contract OmniServiceRelay is OmniServiceCore {
         nodeType = lightClientManager.nodeType(_chainId);
     }
 
-    function transferOut(
-        uint256 _toChain,
-        bytes memory _messageData,
-        address _feeToken
-    ) external payable override nonReentrant whenNotPaused returns (bytes32) {
-        bytes32 orderId = _transferOut(_toChain, _messageData, _feeToken);
-
-        _notifyLightClient(_toChain, bytes(""));
-
-        return orderId;
-    }
-
     function transferInWithIndex(
         uint256 _chainId,
         uint256 _logIndex,
         bytes memory _receiptProof
-    ) external override nonReentrant whenNotPaused {
+    ) external nonReentrant whenNotPaused {
         (bool success, string memory message, bytes memory logArray) = lightClientManager.verifyProofDataWithCache(
             _chainId,
             _receiptProof
@@ -85,26 +73,46 @@ contract OmniServiceRelay is OmniServiceCore {
         }
     }
 
+    function retryMessageIn(
+        uint256 _fromChain,
+        bytes32 _orderId,
+        bytes calldata _fromAddress,
+        bytes calldata _messageData
+    ) external nonReentrant whenNotPaused {
+        (IEvent.dataOutEvent memory outEvent, MessageData memory msgData) = _getStoredMessage(
+            _fromChain,
+            _orderId,
+            _fromAddress,
+            _messageData
+        );
+
+        _tryMessageIn(outEvent, msgData, true);
+    }
+
     function _tryMessageIn(
         IEvent.dataOutEvent memory _outEvent,
         MessageData memory _msgData,
         bool _retry
-    ) internal override {
+    ) internal {
         if (_outEvent.toChain == selfChainId) {
-            _messageIn(_outEvent, _msgData, _retry);
+            _messageIn(_outEvent, _msgData, true, _retry);
         } else {
-            _messageRelay(_outEvent, _msgData);
+            _messageRelay(_outEvent, _msgData, _retry);
         }
     }
 
-    function _messageRelay(IEvent.dataOutEvent memory _outEvent, MessageData memory _msgData) internal {
+    function _messageRelay(IEvent.dataOutEvent memory _outEvent, MessageData memory _msgData, bool _retry) internal {
         if (!_msgData.relay) {
             _notifyMessageOut(_outEvent, _outEvent.messageData);
             return;
         }
         (bool success, bytes memory returnData) = _messageExecute(_outEvent, _msgData, true);
         if (!success) {
-            _storeMessageData(_outEvent, returnData);
+            if (_retry) {
+                revert(string(returnData));
+            } else {
+                _storeMessageData(_outEvent, returnData);
+            }
             return;
         }
         MessageData memory msgData = abi.decode(returnData, (MessageData));
@@ -121,7 +129,7 @@ contract OmniServiceRelay is OmniServiceCore {
         emit mapMessageOut(_outEvent.fromChain, _outEvent.toChain, _outEvent.orderId, _outEvent.fromAddress, _payload);
     }
 
-    function _notifyLightClient(uint256 _chainId, bytes memory _data) internal {
+    function _notifyLightClient(uint256 _chainId, bytes memory _data) internal override {
         lightClientManager.notifyLightClient(_chainId, address(this), _data);
     }
 }

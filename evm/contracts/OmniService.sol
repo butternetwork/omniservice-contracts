@@ -45,42 +45,15 @@ contract OmniService is OmniServiceCore {
         nodeType = lightNode.nodeType();
     }
 
-    function transferOut(
-        uint256 _toChain,
-        bytes memory _messageData,
-        address _feeToken
-    ) external payable virtual override whenNotPaused returns (bytes32) {
-        bytes32 orderId = _transferOut(_toChain, _messageData, _feeToken);
-
-        _notifyLightClient(bytes(""));
-
-        return orderId;
-    }
-
-    function messageOut(
-        bytes32 _transferId,
-        address _initiator, // initiator address
-        address _referrer,
-        uint256 _toChain,
-        bytes memory _messageData,
-        address _feeToken
-    ) external payable virtual whenNotPaused returns (bytes32) {
-        bytes32 orderId = _transferOut(_toChain, _messageData, _feeToken);
-
-        _notifyLightClient(bytes(""));
-
-        return orderId;
-    }
-
     function transferInWithIndex(
         uint256 _chainId,
         uint256 _logIndex,
         bytes memory _receiptProof
-    ) external virtual override nonReentrant whenNotPaused {
+    ) external virtual nonReentrant whenNotPaused {
         IEvent.dataOutEvent memory outEvent = _transferInVerify(_chainId, _logIndex, _receiptProof);
 
         MessageData memory msgData = abi.decode(outEvent.messageData, (MessageData));
-        _messageIn(outEvent, msgData, false);
+        _messageIn(outEvent, msgData, false, false);
     }
 
     function transferInVerify(
@@ -114,7 +87,23 @@ contract OmniService is OmniServiceCore {
             _fromAddress,
             _messageData
         );
-        _messageIn(outEvent, msgData, false);
+        _messageIn(outEvent, msgData, false, false);
+    }
+
+    function retryMessageIn(
+        uint256 _fromChain,
+        bytes32 _orderId,
+        bytes calldata _fromAddress,
+        bytes calldata _messageData
+    ) external nonReentrant whenNotPaused {
+        (IEvent.dataOutEvent memory outEvent, MessageData memory msgData) = _getStoredMessage(
+            _fromChain,
+            _orderId,
+            _fromAddress,
+            _messageData
+        );
+
+        _messageIn(outEvent, msgData, true, true);
     }
 
     function _transferInVerify(
@@ -138,7 +127,7 @@ contract OmniService is OmniServiceCore {
         require(outEvent.toChain == selfChainId, "MOSV3: Invalid target chain");
     }
 
-    function _notifyLightClient(bytes memory _data) internal {
+    function _notifyLightClient(uint256, bytes memory _data) internal override {
         lightNode.notifyLightClient(address(this), _data);
     }
 }
