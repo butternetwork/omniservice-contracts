@@ -63,11 +63,7 @@ contract OmniServiceRelay is OmniServiceCore {
             require(Utils.checkBytes(mosContract, mosContracts[_chainId]), "MOSV3: Invalid mos contract");
 
             (, IEvent.dataOutEvent memory outEvent) = EvmDecoder.decodeDataLog(log);
-
-            require(_chainId == outEvent.fromChain, "MOSV3: Invalid chain id");
-
-            MessageData memory msgData = abi.decode(outEvent.messageData, (MessageData));
-            _tryMessageIn(outEvent, msgData, false);
+            _transferIn(_chainId, outEvent);
         } else {
             require(false, "MOSV3: Invalid chain type");
         }
@@ -86,18 +82,23 @@ contract OmniServiceRelay is OmniServiceCore {
             _messageData
         );
 
-        _tryMessageIn(outEvent, msgData, true);
+        if (outEvent.toChain == selfChainId) {
+            _messageIn(outEvent, msgData, true, true);
+        } else {
+            _messageRelay(outEvent, msgData, true);
+        }
     }
 
-    function _tryMessageIn(
-        IEvent.dataOutEvent memory _outEvent,
-        MessageData memory _msgData,
-        bool _retry
-    ) internal {
+    function _transferIn(
+        uint256 _chainId,
+        IEvent.dataOutEvent memory _outEvent
+    ) internal checkOrder(_outEvent.orderId) {
+        require(_chainId == _outEvent.fromChain, "MOSV3: Invalid chain");
+        MessageData memory msgData = abi.decode(_outEvent.messageData, (MessageData));
         if (_outEvent.toChain == selfChainId) {
-            _messageIn(_outEvent, _msgData, true, _retry);
+            _messageIn(_outEvent, msgData, true, false);
         } else {
-            _messageRelay(_outEvent, _msgData, _retry);
+            _messageRelay(_outEvent, msgData, false);
         }
     }
 

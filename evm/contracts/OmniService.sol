@@ -52,8 +52,7 @@ contract OmniService is OmniServiceCore {
     ) external virtual nonReentrant whenNotPaused {
         IEvent.dataOutEvent memory outEvent = _transferInVerify(_chainId, _logIndex, _receiptProof);
 
-        MessageData memory msgData = abi.decode(outEvent.messageData, (MessageData));
-        _messageIn(outEvent, msgData, false, false);
+        _transferIn(outEvent, false);
     }
 
     function transferInVerify(
@@ -63,16 +62,7 @@ contract OmniService is OmniServiceCore {
     ) external virtual nonReentrant whenNotPaused {
         IEvent.dataOutEvent memory outEvent = _transferInVerify(_chainId, _logIndex, _receiptProof);
 
-        storedMessageList[outEvent.orderId] = keccak256(
-            abi.encodePacked(outEvent.fromChain, outEvent.fromAddress, outEvent.messageData)
-        );
-        emit MessageVerified(
-            outEvent.fromChain,
-            outEvent.toChain,
-            outEvent.orderId,
-            outEvent.fromAddress,
-            outEvent.messageData
-        );
+        _transferIn(outEvent, true);
     }
 
     function transferInVerified(
@@ -124,7 +114,29 @@ contract OmniService is OmniServiceCore {
         require(topic == EvmDecoder.MAP_MESSAGE_TOPIC, "MOSV3: Invalid topic");
 
         (, outEvent) = EvmDecoder.decodeDataLog(log);
-        require(outEvent.toChain == selfChainId, "MOSV3: Invalid target chain");
+    }
+
+    function _transferIn(
+        IEvent.dataOutEvent memory _outEvent,
+        bool _verifyOnly
+    ) internal checkOrder(_outEvent.orderId) {
+        require(_outEvent.toChain == selfChainId, "MOSV3: Invalid target chain");
+
+        if (_verifyOnly) {
+            storedMessageList[_outEvent.orderId] = keccak256(
+                abi.encodePacked(_outEvent.fromChain, _outEvent.fromAddress, _outEvent.messageData)
+            );
+            emit MessageVerified(
+                _outEvent.fromChain,
+                _outEvent.toChain,
+                _outEvent.orderId,
+                _outEvent.fromAddress,
+                _outEvent.messageData
+            );
+        } else {
+            MessageData memory msgData = abi.decode(_outEvent.messageData, (MessageData));
+            _messageIn(_outEvent, msgData, false, false);
+        }
     }
 
     function _notifyLightClient(uint256, bytes memory _data) internal override {

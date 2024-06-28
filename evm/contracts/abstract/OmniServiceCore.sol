@@ -213,7 +213,12 @@ abstract contract OmniServiceCore is ReentrancyGuardUpgradeable, PausableUpgrade
         }
     }
 
-    function _messageIn(IEvent.dataOutEvent memory _outEvent, MessageData memory _msgData, bool _gasleft, bool _revert) internal {
+    function _messageIn(
+        IEvent.dataOutEvent memory _outEvent,
+        MessageData memory _msgData,
+        bool _gasleft,
+        bool _revert
+    ) internal {
         (bool success, bytes memory returnData) = _messageExecute(_outEvent, _msgData, _gasleft);
         if (success) {
             emit mapMessageIn(
