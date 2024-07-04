@@ -201,8 +201,12 @@ abstract contract OmniServiceCore is
             if (!success) {
                 return (false, returnData);
             } else {
-                bytes memory data = abi.decode(returnData, (bytes));
-                return (true, data);
+                if(_msgData.relay){
+                    bytes memory data = abi.decode(returnData, (bytes));
+                    return (true, data);
+                }else{
+                    return (true, returnData);
+                }
             }
         } else if (_msgData.msgType == MessageType.MESSAGE) {
             try
@@ -221,6 +225,7 @@ abstract contract OmniServiceCore is
         } else {
             return (false, bytes("InvalidMessageType"));
         }
+        return (false,bytes("InvalidMessage"));
     }
 
     function _messageIn(

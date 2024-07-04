@@ -15,7 +15,7 @@ describe("MAPO ServiceRelayV3 start test", () => {
     async function deployMosContractFixture() {
         [owner, addr1] = await ethers.getSigners();
 
-        let relayContract = await ethers.getContractFactory("MapoServiceRelayV3");
+        let relayContract = await ethers.getContractFactory("OmniServiceRelay");
         relay = await relayContract.deploy();
         console.log("mosMessageRelay address:", relay.address);
 
@@ -31,9 +31,9 @@ describe("MAPO ServiceRelayV3 start test", () => {
         echo = await EchoContract.deploy();
         console.log("echo relayOperation address:", echo.address);
 
-        let data = await relay.initialize(wrapped.address, lightNode.address);
+        let data = await relay.initialize(owner.address);
 
-        let proxyContract = await ethers.getContractFactory("MapoServiceProxyV3");
+        let proxyContract = await ethers.getContractFactory("OmniServiceProxy");
         let proxy = await proxyContract.deploy(relay.address, data.data);
         await proxy.deployed();
         relay = relayContract.attach(proxy.address);
@@ -43,16 +43,17 @@ describe("MAPO ServiceRelayV3 start test", () => {
         await feeService.initialize();
         console.log("FeeService Relay address:", feeService.address);
 
-        return { relay, echo, feeService, owner, addr1 };
+        return { relay, echo, feeService, owner, addr1,lightNode};
     }
 
     describe("MapoServiceRelay start test", () => {
         it("mosMessage relayOperation set ", async function () {
-            let { relay, echo, feeService, owner, addr1 } = await loadFixture(deployMosContractFixture);
+            let { relay, echo, feeService, owner, addr1,lightNode } = await loadFixture(deployMosContractFixture);
 
             await relay.registerChain(5, "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707", "1");
 
             await relay.setFeeService(feeService.address);
+            await relay.setLightClientManager(lightNode.address);
 
             await echo.setWhiteList(relay.address);
 
@@ -80,7 +81,7 @@ describe("MAPO ServiceRelayV3 start test", () => {
             ).to.be.revertedWith("MOSV3: Only other chain");
         });
 
-        it("transferIn start test ", async function () {
+        it("transferInWithIndex start test ", async function () {
             expect(await echo.EchoList("hello")).to.equal("");
 
             let receiptProof =
@@ -88,7 +89,7 @@ describe("MAPO ServiceRelayV3 start test", () => {
                 echo.address.substring(2) +
                 "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000c4dd1d382400000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000000568656c6c6f000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b68656c6c6f20776f726c6400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 
-            await relay.transferIn(5, receiptProof);
+            await relay.transferInWithIndex(5, 0,receiptProof);
 
             expect(await echo.EchoList("hello")).to.equal("hello world");
 
@@ -98,7 +99,7 @@ describe("MAPO ServiceRelayV3 start test", () => {
                 echo.address.substring(2) +
                 "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000c4dd1d382400000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000000568656c6c6f000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b68656c6c6f20776f726c6400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 
-            await relay.transferIn(5, receiptProof97);
+            await relay.transferInWithIndex(5,0, receiptProof97);
 
             expect(await echo.EchoList("hello")).to.equal("hello world");
 
@@ -107,7 +108,7 @@ describe("MAPO ServiceRelayV3 start test", () => {
                 echo.address.substring(2) +
                 "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000000568656c6c6f000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001368656c6c6f20776f726c64206d65737361676500000000000000000000000000";
 
-            await relay.transferIn(5, receiptProofMessage);
+            await relay.transferInWithIndex(5,0, receiptProofMessage);
 
             expect(await echo.EchoList("hello")).to.equal("hello world message");
         });
@@ -118,7 +119,7 @@ describe("MAPO ServiceRelayV3 start test", () => {
                 echo.address.substring(2) +
                 "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000000568656c6c6f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000086d6170576f726c64000000000000000000000000000000000000000000000000";
 
-            let relayData = await relay.transferIn(5, receiptRelayProof);
+            let relayData = await relay.transferInWithIndex(5,0, receiptRelayProof);
 
             let relayHashData = await ethers.provider.getTransactionReceipt(relayData.hash);
 
@@ -140,7 +141,7 @@ describe("MAPO ServiceRelayV3 start test", () => {
                 echo.address.substring(2) +
                 "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000c4b162b7fb00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000000568656c6c6f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000096f70656e576f726c64000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 
-            let relayCallTransaction = await relay.transferIn(5, relayCallDataProof);
+            let relayCallTransaction = await relay.transferInWithIndex(5,0, relayCallDataProof);
 
             let callDataHash = await ethers.provider.getTransactionReceipt(relayCallTransaction.hash);
 
