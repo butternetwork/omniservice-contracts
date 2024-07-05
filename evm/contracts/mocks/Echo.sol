@@ -76,12 +76,25 @@ contract Echo is Ownable, IMapoExecutor {
         TargetList[_chainId] = _target;
     }
 
-    function echo(uint256 _tochainId, bytes memory _target, string memory _key, string memory _val) external payable {
+    function echo(uint256 _tochainId, bytes memory _target, string memory _key, string memory _val) external payable returns(bytes memory newData) {
         bytes memory data = getData(_key, _val);
 
         bytes memory mData = abi.encode(false, IMOSV3.MessageType.CALLDATA, _target, data, 500000, 0);
 
         IMOSV3(MapoService).transferOut{value: msg.value}(_tochainId, mData, address(0));
+
+        IMOSV3.MessageData memory msgData = IMOSV3.MessageData({
+        relay: true,
+        msgType: IMOSV3.MessageType.MESSAGE,
+        target: bytes(""),
+        payload: abi.encode("val", "key"),
+        gasLimit: 500000,
+        value: 0
+        });
+
+        newData = abi.encode(msgData);
+
+        return newData;
     }
 
     function addCorrespondence(uint256 _fromChain, bytes memory _targetAddress, bool _tag) external onlyOwner {
