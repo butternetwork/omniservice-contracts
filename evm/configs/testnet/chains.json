@@ -1,0 +1,37 @@
+[
+    {
+        "name": "Makalu",
+        "chainId": "212",
+        "mos": "0x8C3cCc219721B206DA4A2070fD96E4911a48CB4f",
+        "feeService": "0xACBa8e04b2405D88bA1f233DB334911EC81C8B02",
+        "lightNode": "0xDD3A69f8f59d892476B0be0260932b4f8d8268Ff"
+    },
+    {
+        "name": "Sepolia",
+        "chainId": "11155111",
+        "mos": "0x800030C62e236489d42A706bf7fF81483b67B6BA",
+        "feeService": "0xACBa8e04b2405D88bA1f233DB334911EC81C8B02",
+        "lightNode": "0x49229C3902d49BE6443E01C0251b02780397ab1A"
+    },
+    {
+        "name": "BscTest",
+        "chainId": "97",
+        "mosAddress": "0x8C3cCc219721B206DA4A2070fD96E4911a48CB4f",
+        "feeService": "0xACBa8e04b2405D88bA1f233DB334911EC81C8B02",
+        "lightNode": "0x0e4ad88ee4bda767576a0a56c72589b5bd287cbf"
+    },
+    {
+        "name": "ArbitrumSepolia",
+        "chainId": "421614",
+        "mosAddress": "0x8C3cCc219721B206DA4A2070fD96E4911a48CB4f",
+        "feeService": "0xACBa8e04b2405D88bA1f233DB334911EC81C8B02",
+        "lightNode": "0x55922ecEc14a2F2BE74C8D3abAB4e24f0aF63815"
+    },
+    {
+        "name": "DodoTest",
+        "chainId": "53457",
+        "mosAddress": "0x8C3cCc219721B206DA4A2070fD96E4911a48CB4f",
+        "feeService": "0xACBa8e04b2405D88bA1f233DB334911EC81C8B02",
+        "lightNode": "0x9E9Cd184f1ceC35b7836b26B3F884a7bA6e0aDA9"
+    }
+]

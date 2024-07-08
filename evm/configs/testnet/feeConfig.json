@@ -1,0 +1,37 @@
+{
+    "Makalu": {
+        "feeRecevier":"0x038BCF8d2d48C084B661E3f2B3c514b4244B4D90",
+        "baseGas": 1000000,
+        "nativePrice": "1",
+        "gasPrice": "10",
+        "nontarget": []
+    },
+    "Sepolia": {
+        "feeRecevier":"0x038BCF8d2d48C084B661E3f2B3c514b4244B4D90",
+        "baseGas": 400000,
+        "nativePrice": "100",
+        "gasPrice": "1",
+        "nontarget": []
+    },
+    "ArbitrumSepolia": {
+        "feeRecevier":"0x038BCF8d2d48C084B661E3f2B3c514b4244B4D90",
+        "baseGas": 600000,
+        "nativePrice": "100",
+        "gasPrice": "0.5",
+        "nontarget": []
+    },
+    "BscTest": {
+        "feeRecevier":"0x038BCF8d2d48C084B661E3f2B3c514b4244B4D90",
+        "baseGas": 1000000,
+        "nativePrice": "50",
+        "gasPrice": "1",
+        "nontarget": []
+    },
+    "DodoTest": {
+        "feeRecevier":"0x038BCF8d2d48C084B661E3f2B3c514b4244B4D90",
+        "baseGas": 1000000,
+        "nativePrice": "20",
+        "gasPrice": "1",
+        "nontarget": []
+    }
+}

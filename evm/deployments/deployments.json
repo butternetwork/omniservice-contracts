@@ -1,0 +1,42 @@
+{
+	"56": {
+		"chainName": "Bsc",
+		"mosAddress": "0x8C3cCc219721B206DA4A2070fD96E4911a48CB4f",
+		"feeService": "0xACBa8e04b2405D88bA1f233DB334911EC81C8B02"
+	},
+	"97": {
+		"chainName": "BscTest",
+		"mosAddress": "0x8C3cCc219721B206DA4A2070fD96E4911a48CB4f",
+		"feeService": "0xACBa8e04b2405D88bA1f233DB334911EC81C8B02"
+	},
+	"137": {
+		"chainName": "Matic",
+		"mosAddress": "0x8C3cCc219721B206DA4A2070fD96E4911a48CB4f",
+		"feeService": "0xACBa8e04b2405D88bA1f233DB334911EC81C8B02"
+	},
+	"212": {
+		"chainName": "Makalu",
+		"mosAddress": "0x8C3cCc219721B206DA4A2070fD96E4911a48CB4f",
+		"feeService": "0xACBa8e04b2405D88bA1f233DB334911EC81C8B02"
+	},
+	"22776": {
+		"chainName": "Mapo",
+		"mosAddress": "0x8C3cCc219721B206DA4A2070fD96E4911a48CB4f",
+		"feeService": "0xACBa8e04b2405D88bA1f233DB334911EC81C8B02"
+	},
+	"53457": {
+		"chainName": "DodoTest",
+		"mosAddress": "0x8C3cCc219721B206DA4A2070fD96E4911a48CB4f",
+		"feeService": "0xACBa8e04b2405D88bA1f233DB334911EC81C8B02"
+	},
+	"421614": {
+		"chainName": "ArbitrumSepolia",
+		"mosAddress": "0x8C3cCc219721B206DA4A2070fD96E4911a48CB4f",
+		"feeService": "0xACBa8e04b2405D88bA1f233DB334911EC81C8B02"
+	},
+	"11155111": {
+		"chainName": "Sepolia",
+		"mosAddress": "0x800030C62e236489d42A706bf7fF81483b67B6BA",
+		"feeService": "0xACBa8e04b2405D88bA1f233DB334911EC81C8B02"
+	}
+}

@@ -9,7 +9,8 @@
   ],
   "main": "index.js",
   "scripts": {
-    "format": "prettier --print-width 120 --tab-width 4 --write ./contracts ./tasks ./test ./utils"
+    "format": "prettier --print-width 120 --tab-width 4 --write ./tasks ./test ./utils ./deploy",
+    "solidity-format": "prettier --print-width 120 --tab-width 4 --plugin=prettier-plugin-solidity --write ./contracts"
   },
   "repository": {
     "type": "git",

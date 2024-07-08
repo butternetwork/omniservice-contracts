@@ -1,0 +1,10 @@
+node_modules
+.env
+
+.idea
+# Hardhat files
+/cache
+/cache-zk
+/artifacts
+/artifacts-zk
+
