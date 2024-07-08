@@ -8,7 +8,7 @@ import "../interface/IMOSV3.sol";
 import "hardhat/console.sol";
 
 contract Echo is Ownable, IMapoExecutor {
-    address MapoService;
+    address omniService;
 
     mapping(string => string) public EchoList;
 
@@ -68,28 +68,33 @@ contract Echo is Ownable, IMapoExecutor {
         WhiteList[_executeAddress] = true;
     }
 
-    function setMapoService(address _IMapoService) external onlyOwner {
-        MapoService = _IMapoService;
+    function setMapoService(address _IOmniService) external onlyOwner {
+        omniService = _IOmniService;
     }
 
     function setTarget(address _target, uint256 _chainId) external onlyOwner {
         TargetList[_chainId] = _target;
     }
 
-    function echo(uint256 _tochainId, bytes memory _target, string memory _key, string memory _val) external payable returns(bytes memory newData) {
+    function echo(
+        uint256 _tochainId,
+        bytes memory _target,
+        string memory _key,
+        string memory _val
+    ) external payable returns (bytes memory newData) {
         bytes memory data = getData(_key, _val);
 
         bytes memory mData = abi.encode(false, IMOSV3.MessageType.CALLDATA, _target, data, 500000, 0);
 
-        IMOSV3(MapoService).transferOut{value: msg.value}(_tochainId, mData, address(0));
+        IMOSV3(omniService).transferOut{value: msg.value}(_tochainId, mData, address(0));
 
         IMOSV3.MessageData memory msgData = IMOSV3.MessageData({
-        relay: true,
-        msgType: IMOSV3.MessageType.MESSAGE,
-        target: bytes(""),
-        payload: abi.encode("val", "key"),
-        gasLimit: 500000,
-        value: 0
+            relay: true,
+            msgType: IMOSV3.MessageType.MESSAGE,
+            target: bytes(""),
+            payload: abi.encode("val", "key"),
+            gasLimit: 500000,
+            value: 0
         });
 
         newData = abi.encode(msgData);
@@ -98,7 +103,7 @@ contract Echo is Ownable, IMapoExecutor {
     }
 
     function addCorrespondence(uint256 _fromChain, bytes memory _targetAddress, bool _tag) external onlyOwner {
-        IMOSV3(MapoService).addRemoteCaller(_fromChain, _targetAddress, _tag);
+        IMOSV3(omniService).addRemoteCaller(_fromChain, _targetAddress, _tag);
     }
 
     function mapoExecute(
@@ -108,7 +113,7 @@ contract Echo is Ownable, IMapoExecutor {
         bytes32,
         bytes calldata _message
     ) external override returns (bytes memory newData) {
-        require(IMOSV3(MapoService).getExecutePermission(address(this), _fromChain, _fromAddress), "no permission");
+        require(IMOSV3(omniService).getExecutePermission(address(this), _fromChain, _fromAddress), "no permission");
 
         (string memory key, string memory value) = abi.decode(_message, (string, string));
 
