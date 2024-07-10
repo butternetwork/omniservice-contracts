@@ -1,9 +1,8 @@
 const { getOmniService, getChainList, getChain } = require("./utils/utils");
 
 task("relay:deploy", "Deploy the upgradeable MOS contract and initialize it")
-    .addParam("wrapped", "native wrapped token address")
-    .addParam("lightnode", "lightNode contract address")
-    .addOptionalParam("salt", "deploy contract salt", process.env.MOS_SALT, types.string)
+    .addOptionalParam("client", "lightNode contract address", "", types.string)
+    .addOptionalParam("salt", "deploy contract salt", "", types.string)
     .addOptionalParam("factory", "mos contract address", process.env.DEPLOY_FACTORY, types.string)
     .setAction(async (taskArgs, hre) => {
         await hre.run("deploy:mos", {
@@ -23,14 +22,22 @@ task("relay:setClientManager", "Update client manager")
     .setAction(async (taskArgs, hre) => {
         const accounts = await ethers.getSigners();
         const deployer = accounts[0];
-        console.log("deployer address:", deployer.address);
+        console.log("setClientManager deployer address:", deployer.address);
 
-        let mos = await getOmniService(hre.network.config.chainId);
+        let mos = await getOmniService(hre, "");
         let clientAddr = taskArgs.manager;
-        if (taskArgs.manager === "") {
-            let chain = await getChain(hre.network.name);
+        if (clientAddr === "") {
+            let chain = await getChain(hre.network.name, hre.network.name);
+
             clientAddr = chain.lightNode;
         }
+
+        let onchainAddr = await mos.lightClientManager();
+        if (onchainAddr.toLowerCase() === clientAddr.toLowerCase()) {
+            console.log(`lightclient manager no update`);
+            return;
+        }
+
         await (await mos.setLightClientManager(clientAddr)).wait();
         console.log(`set  LightClientManager ${await mos.lightClientManager()} successfully `);
     });
@@ -42,24 +49,24 @@ task("relay:registerChain", "Register altchain mos to relayOperation chain")
     .setAction(async (taskArgs, hre) => {
         const accounts = await ethers.getSigners();
         const deployer = accounts[0];
-        console.log("deployer address:", deployer.address);
+        console.log("registerChain deployer address:", deployer.address);
 
-        let relay = await getOmniService(hre.network.config.chainId);
+        let relay = await getOmniService(hre, "");
 
-        let chain = await getChain(taskArgs.chain);
+        let chain = await getChain(hre.network.name, taskArgs.chain);
         let mosAddr = taskArgs.address;
         if (taskArgs.address === "latest") {
             mosAddr = chain.mos;
         }
 
         let onchainMos = await relay.mosContracts(chain.chainId);
-        if (onchainMos === mosAddr) {
+        if (onchainMos.toLowerCase() === mosAddr.toLowerCase()) {
             console.log(`chain [${chain.name}] mos addr no update`);
             return;
         }
         await (await relay.registerChain(chain.chainId, mosAddr, taskArgs.type)).wait();
         console.log(
-            `register chain [${taskArgs.chain}] with mos [${await relay.mosContracts(taskArgs.chain)}] successfully `,
+            `register chain [${taskArgs.chain}] with mos [${await relay.mosContracts(chain.chainId)}] successfully `,
         );
     });
 
@@ -86,7 +93,7 @@ task("relay:list", "List mos info")
         const deployer = accounts[0];
         console.log("deployer address:", deployer.address);
 
-        let relay = await getOmniService(hre.network.config.chainId);
+        let relay = await getOmniService(hre, "");
 
         let selfChainId = await relay.selfChainId();
         console.log("selfChainId:\t", selfChainId.toString());

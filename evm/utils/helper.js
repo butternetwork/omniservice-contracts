@@ -138,12 +138,25 @@ async function getTronDeployer(hex, network) {
     }
 }
 
-function isTron(chainId) {
-    if (chainId === 728126428 || chainId === 3448148188) {
-        return true;
-    } else {
-        return false;
-    }
+function isRelayChain(network) {
+    let networks = [
+        22776,
+        "Mapo",
+        "Map",
+        212,
+        "Makalu"
+    ];
+    return networks.includes(network);
+}
+
+function isTron(network) {
+    let networks = [
+        728126428,
+        "Tron",
+        3448148188,
+        "TronTest"
+    ];
+    return networks.includes(network);
 }
 
 function isTestnet(chainId) {
@@ -199,6 +212,7 @@ module.exports = {
     getTronDeployer,
     isTestnet,
     isTron,
+    isRelayChain,
     fromEvmAddress,
     toEvmAddress,
 };

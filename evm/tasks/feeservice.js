@@ -17,12 +17,12 @@ task("fee:setReceiver", "Set message fee service address ")
         const accounts = await ethers.getSigners();
         const deployer = accounts[0];
 
-        let feeService = await getFeeService(hre.network.config.chainId, taskArgs.service);
+        let feeService = await getFeeService(hre, taskArgs.service);
 
         let receiver = taskArgs.receiver;
         if (taskArgs.receiver === "latest") {
             let feeConfig = await getFeeConfig(hre.network.name);
-            receiver = feeConfig.feeRecevier;
+            receiver = feeConfig.feeReceiver;
         }
 
         if (isTron(hre.network.config.chainId)) {
@@ -33,17 +33,17 @@ task("fee:setReceiver", "Set message fee service address ")
             }
             await feeService.setFeeReceiver(receiver).send();
             console.log(
-                `Update chain ${hre.network.name} fee recevier [onchainReceiver] => ${await feeService.feeReceiver().call()}`,
+                `Update chain [${hre.network.name}] fee receiver [${onchainReceiver}] => ${await feeService.feeReceiver().call()}`,
             );
         } else {
             let onchainReceiver = await feeService.feeReceiver();
-            if (onchainReceiver === receiver) {
+            if (onchainReceiver.toLowerCase() === receiver.toLowerCase()) {
                 console.log(`fee receiver no update`);
                 return;
             }
-            await (await feeService.setFeeReceiver(recevier)).wait();
+            await (await feeService.setFeeReceiver(receiver)).wait();
             console.log(
-                `Update chain ${hre.network.name} fee recevier [onchainReceiver] => [${await feeService.feeReceiver()}]`,
+                `Update chain [${hre.network.name}] fee receiver [${onchainReceiver}] => [${await feeService.feeReceiver()}]`,
             );
         }
     });
@@ -58,29 +58,48 @@ task("fee:setBaseGas", "set target chain base gas limit")
         const deployer = accounts[0];
         // console.log("deployer address:", deployer.address);
 
-        let feeService = await getFeeService(hre.network.config.chainId, taskArgs.service);
-        let chain = await getChain(hre.network.name, taskArgs.chain);
+        let feeService = await getFeeService(hre, taskArgs.service);
 
+        let gasList = taskArgs.gas.split(",");
+        let chains = taskArgs.chain.split(",");
+        let chainList = [];
+        for (let chainNetwork of chains) {
+            let chain = await getChain(hre.network.name, chainNetwork);
+            chainList.push(chain);
+        }
+
+        let updateChainList = [];
+        let updateGasList = [];
         if (isTron(hre.network.config.chainId)) {
-            let baseGas = await feeService.baseGas(chain.chainId).call();
-            if (baseGas.toString() === taskArgs.gas) {
-                console.log(`target chain [${taskArgs.chain}] base gas limit no update`);
-                return;
+            for (let i = 0; i < chainList.length; i++) {
+                let chain = chainList[i];
+                let baseGas = await feeService.baseGas(chain.chainId).call();
+                if (baseGas.toString() === gasList[i]) {
+                    console.log(`target chain [${chain.name}] base gas limit no update`);
+                    continue;
+                }
+                updateChainList.push(chain.chainId);
+                updateGasList.push(gasList[i]);
+                console.log(`target chain [${chain.name}] base gas limt [${baseGas.toString()}] => [${gasList[i]}]`);
             }
-            await feeService.setBaseGas(chain.chainId, taskArgs.gas).send();
-            console.log(
-                `Update chain [${taskArgs.chain}] base gas limit [${baseGas}] => [${await feeService.baseGas(chain.chainId).call()}]`,
-            );
+
+            await feeService.setBaseGas(updateChainList, updateGasList).send();
+            console.log(`Update chain [${updateChainList}] base gas limit]`);
         } else {
-            let baseGas = await feeService.baseGas(chain.chainId);
-            if (baseGas.toString() === taskArgs.gas) {
-                console.log(`target chain [${taskArgs.chain}] base gas limit no update`);
-                return;
+            for (let i = 0; i < chainList.length; i++) {
+                let chain = chainList[i];
+                let baseGas = await feeService.baseGas(chain.chainId);
+                if (baseGas.toString() === gasList[i]) {
+                    console.log(`chain [${chain.name}] base gas limit no update`);
+                    continue;
+                }
+                updateChainList.push(chain.chainId);
+                updateGasList.push(gasList[i]);
+                console.log(`chain [${chain.name}] base gas limt [${baseGas.toString()}] => [${gasList[i]}]`);
             }
-            await (await feeService.setBaseGas(chain.chainId, taskArgs.gas)).wait();
-            console.log(
-                `Update chain [${taskArgs.chain}] base gas limit [${baseGas}] => [${await feeService.baseGas(chain.chainId)}]`,
-            );
+
+            await feeService.setBaseGas(updateChainList, updateGasList);
+            console.log(`Update chain [${updateChainList}] base gas limit`);
         }
     });
 
@@ -94,31 +113,50 @@ task("fee:setTargetPrice", "set chain message fee")
         const deployer = accounts[0];
         //console.log("deployer address:", deployer.address);
 
-        let feeService = await getFeeService(hre.network.config.chainId, taskArgs.service);
+        let feeService = await getFeeService(hre, taskArgs.service);
 
-        let chain = await getChain(hre.network.name, taskArgs.chain);
         let token = await getToken(hre.network.name, taskArgs.token);
+        let priceList = taskArgs.price.split(",");
+        let chains = taskArgs.chain.split(",");
+        let chainList = [];
+        for (let chainNetwork of chains) {
+            let chain = await getChain(hre.network.name, chainNetwork);
+            chainList.push(chain);
+        }
+
+        let updateChainList = [];
+        let updatePriceList = [];
+
         if (isTron(hre.network.config.chainId)) {
-            let gasPrice = await feeService.chainGasPrice(chain.chainId, token).call();
-            if (gasPrice === taskArgs.price) {
-                console.log(`target chain [${taskArgs.chain}] token [${taskArgs.token}] gas price no update`);
-                return;
-            }
-            await feeService.setChainGasPrice(chain.chainId, token, taskArgs.price).send();
-            console.log(
-                `Update chain [${taskArgs.chain}] token [${taskArgs.token}] gas price [${gasPrice}] => ${await feeService.chainGasPrice(chain.chainId, token).call()}`,
-            );
-        } else {
-            let gasPrice = await feeService.chainGasPrice(chain.chainId, token);
-            if (gasPrice.toString() === taskArgs.price) {
-                console.log(`target chain [${taskArgs.chain}] fee token [${taskArgs.token}] gas price no update`);
-                return;
+            for (let i = 0; i < chainList.length; i++) {
+                let chain = chainList[i];
+                let gasPrice = await feeService.chainGasPrice(chain.chainId, token).call();
+                if (gasPrice === priceList[i]) {
+                    console.log(`chain [${taskArgs.chain}] token [${taskArgs.token}] gas price no update`);
+                    continue;
+                }
+                updateChainList.push(chain.chainId);
+                updatePriceList.push(priceList[i]);
+                console.log(`chain [${chain.name}] token [${taskArgs.token}] gas price [${gasPrice}] => [${priceList[i]}]`);
             }
 
-            await (await feeService.setChainGasPrice(chain.chainId, token, taskArgs.price)).wait();
-            console.log(
-                `Update chain [${taskArgs.chain}] fee token [${taskArgs.token}] gas price [${gasPrice}] => [${await feeService.chainGasPrice(chain.chainId, token)}]`,
-            );
+            await feeService.setChainGasPrice(token, updateChainList, updatePriceList).send();
+            console.log(`Update chain [${updateChainList}] token [${taskArgs.token}] gas price`);
+        } else {
+            for (let i = 0; i < chainList.length; i++) {
+                let chain = chainList[i];
+                let gasPrice = await feeService.chainGasPrice(chain.chainId, token);
+                if (gasPrice === priceList[i]) {
+                    console.log(`chain [${taskArgs.chain}] token [${taskArgs.token}] gas price no update`);
+                    continue;
+                }
+                updateChainList.push(chain.chainId);
+                updatePriceList.push(priceList[i]);
+                console.log(`chain [${chain.name}] token [${taskArgs.token}] gas price [${gasPrice}] => [${priceList[i]}]`);
+            }
+
+            await feeService.setChainGasPrice(token, updateChainList, updatePriceList);
+            console.log(`Update chain [${updateChainList}] token [${taskArgs.token}] gas price\n`);
         }
     });
 
@@ -130,54 +168,61 @@ task("fee:update", "update chain message fee")
         console.log("deployer address:", deployer.address);
 
         let feeConfig = await getFeeConfig(hre.network.name);
-
         // set fee receiver
         await hre.run("fee:setReceiver", {
             receiver: feeConfig.feeRecevier,
             service: taskArgs.service,
         });
 
-        let addList = [];
-        let removeList = [];
+        let addChainList = [];
+        let addBaseList = [];
+
+        let removeChainList = [];
+        let removeBaseList = [];
         let chainList = await getChainList(hre.network.name);
         for (let i = 0; i < chainList.length; i++) {
             if (chainList[i].name === hre.network.name) {
                 continue;
             }
             if (feeConfig.nontarget.includes(chainList[i].name)) {
-                removeList.push(chainList[i]);
+                removeChainList.push(chainList[i].name);
+                removeBaseList.push("0");
             } else {
-                addList.push(chainList[i]);
+                addChainList.push(chainList[i].name);
+                let targetConfig = await getFeeConfig(chainList[i].name);
+                addBaseList.push(targetConfig.baseGas.toString());
             }
         }
-        // console.log("add list", addList);
-        console.log("remove list", removeList);
-        for (let i = 0; i < removeList.length; i++) {
+        // console.log("add list", addChainList);
+        console.log("remove list", removeChainList);
+        if (removeChainList.length > 0) {
             await hre.run("fee:setBaseGas", {
-                chain: removeList[i].name,
-                gas: "0",
+                chain: removeChainList.toString(),
+                gas: removeBaseList.toString(),
                 service: taskArgs.service,
             });
         }
 
+        await hre.run("fee:setBaseGas", {
+            chain: addChainList.toString(),
+            gas: addBaseList.toString(),
+            service: taskArgs.service,
+        });
+
         let fee = await getFee(hre.network.name);
-        for (let i = 0; i < addList.length; i++) {
-            let targetConfig = await getFeeConfig(addList[i].name);
-            await hre.run("fee:setBaseGas", {
-                chain: addList[i].name,
-                gas: targetConfig.baseGas.toString(),
+        for (let token in fee) {
+            let priceList = [];
+            for (let chain of addChainList) {
+                priceList.push(fee[token][chain]);
+            }
+            await hre.run("fee:setTargetPrice", {
+                chain: addChainList.toString(),
+                price: priceList.toString(),
+                token: token,
                 service: taskArgs.service,
             });
-            for (let token in fee) {
-                await hre.run("fee:setTargetPrice", {
-                    chain: addList[i].name,
-                    price: fee[token][addList[i].name],
-                    token: token,
-                    service: taskArgs.service,
-                });
-            }
         }
-        console.log("Update fee success!");
+        console.log("Update fee success!\n");
     });
 
 task("fee:updateFee", "List mos info")
@@ -218,9 +263,9 @@ task("fee:updateFee", "List mos info")
 task("fee:list", "List mos info")
     .addOptionalParam("service", "the fee service address", "", types.string)
     .setAction(async (taskArgs, hre) => {
-        let feeService = await getFeeService(hre.network.config.chainId, taskArgs.service);
+        let feeService = await getFeeService(hre, taskArgs.service);
 
-        console.log("owner:\t", await feeService.owner());
+        // console.log("owner:\t", await feeService.owner());
         console.log("feeService receiver:\t", await feeService.feeReceiver());
 
         console.log("fees:");

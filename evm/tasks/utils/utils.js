@@ -1,23 +1,23 @@
 let fs = require("fs");
 let path = require("path");
 
-const { isTron, getTronContract, isTestnet } = require("../../utils/helper");
+const { isTron, getTronContract, isTestnet, isRelayChain} = require("../../utils/helper");
 const net = require("node:net");
 
-async function getOmniService(chainId, contractAddress) {
+async function getOmniService(hre, contractAddress) {
     let addr = contractAddress;
     if (addr === "" || addr === "latest") {
-        let deployment = await readFromFile(chainId);
-        addr = deployment[chainId]["mosAddress"];
+        let deployment = await readFromFile(hre.network.config.chainId);
+        addr = deployment[hre.network.config.chainId]["mosAddress"];
         if (!addr) {
             throw "mos not deployed.";
         }
     }
 
     let mos;
-    if (isTron(chainId)) {
+    if (isTron(hre.network.config.chainId)) {
         mos = await getTronContract("OmniService", hre.artifacts, hre.network.name, addr);
-    } else if (chainId === 212 || chainId === 22776) {
+    } else if (isRelayChain(hre.network.name)) {
         mos = await ethers.getContractAt("OmniServiceRelay", addr);
     } else {
         mos = await ethers.getContractAt("OmniService", addr);
@@ -27,18 +27,21 @@ async function getOmniService(chainId, contractAddress) {
     return mos;
 }
 
-async function getFeeService(chainId, contractAddress) {
+async function getFeeService(hre, contractAddress) {
     let addr = contractAddress;
     if (addr === "" || addr === "latest") {
-        let deployment = await readFromFile(chainId);
-        addr = deployment[chainId]["feeService"];
-        if (!addr) {
-            throw "fee service not deployed.";
+        let mos = await getOmniService(hre, contractAddress);
+        let feeServiceAddr = await mos.feeService();
+        if (feeServiceAddr === ethers.constants.AddressZero) {
+            console.log("feeService address:", mos.address);
+            return mos;
+        } else {
+            addr = feeServiceAddr;
         }
     }
 
     let feeService;
-    if (isTron(chainId)) {
+    if (isTron(hre.network.config.chainId)) {
         feeService = await getTronContract("FeeService", hre.artifacts, hre.network.name, addr);
     } else {
         feeService = await ethers.getContractAt("FeeService", addr);

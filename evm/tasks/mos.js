@@ -39,19 +39,30 @@ task("mos:setRelay", "Initialize MOSRelay address for MOS")
         const deployer = accounts[0];
         console.log("deployer address:", deployer.address);
 
-        let mos = await getOmniService(hre.network.config.chainId, "");
+        let mos = await getOmniService(hre, "");
 
         let relayAddr = taskArgs.relay;
         if (taskArgs.relay === "latest") {
-            let relayChain = await getChain(taskArgs.chain);
+            let relayChain = await getChain(hre.network.name, taskArgs.chain);
             relayAddr = relayChain["mos"];
         }
+
         if (isTron(hre.network.config.chainId)) {
+            let onchainRelay = await mos.relayContract().call();
+            if (onchainRelay === relayAddr) {
+                console.log(`relay no update`);
+                return;
+            }
             await mos.setRelayContract(taskArgs.chain, relayAddr).send();
             console.log(
                 `set  relay ${await mos.relayContract().call()} with chain id ${await mos.relayChainId().call()} successfully `,
             );
         } else {
+            let onchainRelay = await mos.relayContract();
+            if (onchainRelay.toLowerCase() === relayAddr.toLowerCase()) {
+                console.log(`relay no update`);
+                return;
+            }
             await (await mos.setRelayContract(taskArgs.chain, relayAddr)).wait();
             console.log(
                 `set  relay ${await mos.relayContract()} with chain id ${await mos.relayChainId()} successfully `,
@@ -66,17 +77,28 @@ task("mos:setLightClient", "Initialize MOSRelay address for MOS")
         const deployer = accounts[0];
         console.log("deployer address:", deployer.address);
 
-        let mos = await getOmniService(hre.network.config.chainId, "");
+        let mos = await getOmniService(hre, "");
         let clientAddr = taskArgs.client;
         if (taskArgs.client === "") {
-            let chain = await getChain(hre.network.name);
+            let chain = await getChain(hre.network.name, hre.network.name);
             clientAddr = chain.lightNode;
         }
 
         if (isTron(hre.network.config.chainId)) {
+            let onchainAddr = await mos.lightNode().call();
+            if (onchainAddr === clientAddr) {
+                console.log(`client no update`);
+                return;
+            }
             await mos.setLightClient(clientAddr).send();
             console.log(`set LightClient ${await mos.lightNode().call()} successfully `);
         } else {
+            let onchainAddr = await mos.lightNode();
+            if (onchainAddr.toLowerCase() === clientAddr.toLowerCase()) {
+                console.log(`client no update`);
+                return;
+            }
+            console.log(`${onchainAddr} => ${clientAddr}`);
             await (await mos.setLightClient(clientAddr)).wait();
             console.log(`set LightClient ${await mos.lightNode()} successfully `);
         }
@@ -89,18 +111,28 @@ task("mos:setFeeService", "Set message fee service address ")
         const deployer = accounts[0];
         console.log("deployer address:", deployer.address);
 
-        let mos = await getOmniService(hre.network.config.chainId, "");
+        let mos = await getOmniService(hre, "");
 
         let feeService = taskArgs.fee;
         if (taskArgs.fee === "latest") {
-            let chain = await getChain(hre.network.name);
+            let chain = await getChain(hre.network.name, hre.network.name);
             feeService = chain["feeService"];
         }
 
         if (isTron(hre.network.config.chainId)) {
+            let onchainAddr = await mos.feeService().call();
+            if (onchainAddr === feeService) {
+                console.log(`feeService no update`);
+                return;
+            }
             await mos.setFeeService(feeService).send();
             console.log(`set FeeService ${await mos.feeService().call()} successfully `);
         } else {
+            let onchainAddr = await mos.feeService();
+            if (onchainAddr.toLowerCase() === feeService.toLowerCase()) {
+                console.log(`feeService no update`);
+                return;
+            }
             await (await mos.setFeeService(feeService)).wait();
             console.log(`set FeeService ${await mos.feeService()} successfully `);
         }
@@ -113,7 +145,7 @@ task("mos:list", "List mos info")
         const deployer = accounts[0];
         console.log("deployer address:", deployer.address);
 
-        let mos = await getOmniService(hre.network.config.chainId, taskArgs.mos);
+        let mos = await getOmniService(hre, taskArgs.mos);
 
         let selfChainId = await mos.selfChainId();
         console.log("selfChainId:\t", selfChainId.toString());

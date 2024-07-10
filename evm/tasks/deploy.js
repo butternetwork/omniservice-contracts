@@ -83,7 +83,7 @@ task("deploy:upgrade", "upgrade mos evm contract in proxy")
             implContract = "OmniService";
         }
 
-        let proxy = await getOmniService(hre.network.config.chainId, taskArgs.mos);
+        let proxy = await getOmniService(hre, taskArgs.mos);
 
         let implAddr = taskArgs.impl;
         if (implAddr === "") {

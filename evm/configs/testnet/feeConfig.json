@@ -1,36 +1,36 @@
 {
     "Makalu": {
-        "feeRecevier":"0x038BCF8d2d48C084B661E3f2B3c514b4244B4D90",
-        "baseGas": 1000000,
+        "feeReceiver":"0x038BCF8d2d48C084B661E3f2B3c514b4244B4D90",
+        "baseGas": 200000,
         "nativePrice": "1",
-        "gasPrice": "10",
+        "gasPrice": "0.1",
         "nontarget": []
     },
     "Sepolia": {
-        "feeRecevier":"0x038BCF8d2d48C084B661E3f2B3c514b4244B4D90",
-        "baseGas": 400000,
-        "nativePrice": "100",
+        "feeReceiver":"0x038BCF8d2d48C084B661E3f2B3c514b4244B4D90",
+        "baseGas": 100000,
+        "nativePrice": "10",
         "gasPrice": "1",
         "nontarget": []
     },
     "ArbitrumSepolia": {
-        "feeRecevier":"0x038BCF8d2d48C084B661E3f2B3c514b4244B4D90",
-        "baseGas": 600000,
-        "nativePrice": "100",
+        "feeReceiver":"0x038BCF8d2d48C084B661E3f2B3c514b4244B4D90",
+        "baseGas": 120000,
+        "nativePrice": "10",
         "gasPrice": "0.5",
         "nontarget": []
     },
     "BscTest": {
-        "feeRecevier":"0x038BCF8d2d48C084B661E3f2B3c514b4244B4D90",
-        "baseGas": 1000000,
-        "nativePrice": "50",
+        "feeReceiver":"0x038BCF8d2d48C084B661E3f2B3c514b4244B4D90",
+        "baseGas": 150000,
+        "nativePrice": "5",
         "gasPrice": "1",
         "nontarget": []
     },
     "DodoTest": {
         "feeRecevier":"0x038BCF8d2d48C084B661E3f2B3c514b4244B4D90",
-        "baseGas": 1000000,
-        "nativePrice": "20",
+        "baseGas": 200000,
+        "nativePrice": "2",
         "gasPrice": "1",
         "nontarget": []
     }
