@@ -54,20 +54,20 @@ contract OmniServiceRelay is OmniServiceCore {
                 logArray
             );
             IEvent.transferOutEvent memory outEvent = outEvents[_logIndex];
-            require(outEvent.toChain != 0, "MOSV3: Invalid target chain id");
-            require(Utils.checkBytes(mosContract, mosContracts[_chainId]), "MOSV3: Invalid mos contract");
+            require(outEvent.toChain != 0, "MOSV3: invalid target chain id");
+            require(Utils.checkBytes(mosContract, mosContracts[_chainId]), "MOSV3: invalid mos contract");
             // TODO support near
         } else if (chainTypes[_chainId] == ChainType.EVM) {
             LogDecoder.txLog memory log = LogDecoder.decodeTxLog(logArray, _logIndex);
             bytes32 topic = abi.decode(log.topics[0], (bytes32));
-            require(topic == EvmDecoder.MAP_MESSAGE_TOPIC, "MOSV3: Invalid topic");
+            require(topic == EvmDecoder.MAP_MESSAGE_TOPIC, "MOSV3: invalid topic");
             bytes memory mosContract = Utils.toBytes(log.addr);
-            require(Utils.checkBytes(mosContract, mosContracts[_chainId]), "MOSV3: Invalid mos contract");
+            require(Utils.checkBytes(mosContract, mosContracts[_chainId]), "MOSV3: invalid mos contract");
 
             (, IEvent.dataOutEvent memory outEvent) = EvmDecoder.decodeDataLog(log);
             _transferIn(_chainId, outEvent);
         } else {
-            require(false, "MOSV3: Invalid chain type");
+            require(false, "MOSV3: invalid chain type");
         }
     }
 
@@ -95,7 +95,7 @@ contract OmniServiceRelay is OmniServiceCore {
         uint256 _chainId,
         IEvent.dataOutEvent memory _outEvent
     ) internal checkOrder(_outEvent.orderId) {
-        require(_chainId == _outEvent.fromChain, "MOSV3: Invalid chain");
+        require(_chainId == _outEvent.fromChain, "MOSV3: invalid from chain");
         MessageData memory msgData = abi.decode(_outEvent.messageData, (MessageData));
         if (_outEvent.toChain == selfChainId) {
             _messageIn(_outEvent, msgData, true, false);
@@ -128,8 +128,9 @@ contract OmniServiceRelay is OmniServiceCore {
     }
 
     function _notifyMessageOut(IEvent.dataOutEvent memory _outEvent, bytes memory _payload) internal {
+        emit MessageOut(_outEvent.fromChain, _outEvent.toChain, _outEvent.orderId, _outEvent.fromAddress, _payload);
+
         _notifyLightClient(_outEvent.toChain, bytes(""));
-        emit mapMessageOut(_outEvent.fromChain, _outEvent.toChain, _outEvent.orderId, _outEvent.fromAddress, _payload);
     }
 
     function _notifyLightClient(uint256 _chainId, bytes memory _data) internal override {

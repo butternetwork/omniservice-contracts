@@ -72,20 +72,20 @@ interface IMOSV3 {
         bytes memory fromAddress
     ) external view returns (bool);
 
-    event mapMessageOut(
+    event MessageOut(
         uint256 indexed fromChain,
         uint256 indexed toChain,
         bytes32 orderId,
         bytes fromAddrss,
-        bytes callData
+        bytes messageData
     );
 
-    event mapMessageIn(
+    event MessageIn(
         uint256 indexed fromChain,
         uint256 indexed toChain,
         bytes32 orderId,
         bytes fromAddrss,
-        bytes callData,
+        bytes messageData,
         bool result,
         bytes reason
     );
