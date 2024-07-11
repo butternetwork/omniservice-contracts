@@ -1,4 +1,4 @@
-const { getChain, getOmniService, getChainList} = require("./utils/utils");
+const { getChain, getOmniService, getChainList } = require("./utils/utils");
 const { isTron } = require("../utils/helper");
 
 task("mos:deploy", "Deploy the upgradeable MOS contract and initialize it")
@@ -139,12 +139,9 @@ task("mos:setFeeService", "Set message fee service address ")
     });
 
 task("mos:update", "mos update").setAction(async (taskArgs, hre) => {
+    await hre.run("mos:setLightClient", {});
 
-    await hre.run("mos:setLightClient", {
-    });
-
-    await hre.run("mos:setFeeService", {
-    });
+    await hre.run("mos:setFeeService", {});
 
     await hre.run("fee:update", {});
 });

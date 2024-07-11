@@ -46,7 +46,25 @@ interface IMOSV3 {
         bytes32 _orderId
     ) external view returns (bool exists, bool verifiable, uint256 nodeType);
 
-    // @notice Initiate cross-chain transactions. Generate cross-chain logs.
+    // @notice Initiate omni-chain message.
+    // @param transferId - Custom identifier provided by the caller.
+    //        transferId will be reflected in the event and allows for queries based on the transferId.
+    //          Omnichain service does not check for the uniqueness of the transferId.
+    // @param initiator - The actual address of the message initiator, which is typically a user address.
+    // @param referrer - Custom parameter provided by the caller, which can serve as an identifier for the caller.
+    // @param toChain - Target chain chainID.
+    // @param messageData - Structure MessageData encoding.
+    // @param feeToken - In what Token would you like to pay the fee.
+    function messageOut(
+        bytes32 transferId,
+        address initiator,
+        address referrer,
+        uint256 toChain,
+        bytes memory messageData,
+        address feeToken
+    ) external payable returns (bytes32);
+
+    // @notice Initiate omni-chain message. It is recommended to use messageOut instead.
     // @param toChain - Target chain chainID.
     // @param messageData - Structure MessageData encoding.
     // @param feeToken - In what Token would you like to pay the fee.

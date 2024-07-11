@@ -176,7 +176,6 @@ task("fee:update", "update chain message fee")
             service: taskArgs.service,
         });
 
-
         let addChainList = [];
         let addBaseList = [];
 
