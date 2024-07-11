@@ -28,7 +28,7 @@ abstract contract FeeManager is IFeeService {
         }
     }
 
-    function _setChainGasPrice(address _token, uint256[] memory _chainList,  uint256[] memory _priceList) internal {
+    function _setChainGasPrice(address _token, uint256[] memory _chainList, uint256[] memory _priceList) internal {
         require(_chainList.length == _priceList.length, "MOSV3: length mismatch");
         for (uint256 i = 0; i < _chainList.length; i++) {
             chainGasPrice[_chainList[i]][_token] = _priceList[i];

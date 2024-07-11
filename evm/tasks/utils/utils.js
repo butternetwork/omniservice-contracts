@@ -1,7 +1,7 @@
 let fs = require("fs");
 let path = require("path");
 
-const { isTron, getTronContract, isTestnet, isRelayChain} = require("../../utils/helper");
+const { isTron, getTronContract, isTestnet, isRelayChain } = require("../../utils/helper");
 const net = require("node:net");
 
 async function getOmniService(hre, contractAddress) {

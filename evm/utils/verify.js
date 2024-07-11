@@ -2,8 +2,8 @@ async function sleep(delay) {
     return new Promise((resolve) => setTimeout(resolve, delay));
 }
 
-exports.verify = async function (addr, args, code, chainId, wait) {
-    if (needVerify(chainId)) {
+exports.verify = async function (hre, addr, args, code, wait) {
+    if (needVerify(hre.network.config.chainId)) {
         if (wait) {
             await sleep(20000);
         }
@@ -12,7 +12,9 @@ exports.verify = async function (addr, args, code, chainId, wait) {
         console.log("args:", args);
 
         const verifyArgs = args.map((arg) => (typeof arg == "string" ? `'${arg}'` : arg)).join(" ");
-        console.log(`To verify, run: npx hardhat verify --network Network --contract ${code} ${addr} ${verifyArgs}`);
+        console.log(
+            `To verify, run: npx hardhat verify --network ${hre.network.name} --contract ${code} ${addr} ${verifyArgs}`,
+        );
 
         await run("verify:verify", {
             contract: code,
@@ -36,6 +38,9 @@ function needVerify(chainId) {
         59144, // linea
         534352, // scoll
         5000, // mantle
+        11155111, // sepolia
+        97, // bsctest
+        421614, // arbitrum sepolia
     ];
     if (needs.includes(chainId)) {
         return true;

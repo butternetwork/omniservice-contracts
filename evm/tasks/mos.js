@@ -1,9 +1,9 @@
-const { getChain, getOmniService } = require("./utils/utils");
+const { getChain, getOmniService, getChainList} = require("./utils/utils");
 const { isTron } = require("../utils/helper");
 
 task("mos:deploy", "Deploy the upgradeable MOS contract and initialize it")
     .addOptionalParam("client", "lightNode contract address", "", types.string)
-    .addOptionalParam("relaychain", "relay chain id", 22776, types.int)
+    .addParam("relaychain", "relay chain id", 22776, types.int)
     .addOptionalParam("relayaddress", "relay contract address", "", types.string)
     .addOptionalParam("fee", "fee service", "", types.string)
     .addOptionalParam("salt", "deploy contract salt", "", types.string)
@@ -32,7 +32,7 @@ task("mos:deploy", "Deploy the upgradeable MOS contract and initialize it")
     });
 
 task("mos:setRelay", "Initialize MOSRelay address for MOS")
-    .addOptionalParam("chain", "relay chain id", 22776, types.int)
+    .addParam("chain", "relay chain id", 22776, types.int)
     .addOptionalParam("relay", "mos relay contract address", "latest", types.string)
     .setAction(async (taskArgs, hre) => {
         const accounts = await ethers.getSigners();
@@ -71,7 +71,7 @@ task("mos:setRelay", "Initialize MOSRelay address for MOS")
     });
 
 task("mos:setLightClient", "Initialize MOSRelay address for MOS")
-    .addOptionalParam("client", "light client address", "latest", types.string)
+    .addOptionalParam("client", "light client address", "", types.string)
     .setAction(async (taskArgs, hre) => {
         const accounts = await ethers.getSigners();
         const deployer = accounts[0];
@@ -137,6 +137,17 @@ task("mos:setFeeService", "Set message fee service address ")
             console.log(`set FeeService ${await mos.feeService()} successfully `);
         }
     });
+
+task("mos:update", "mos update").setAction(async (taskArgs, hre) => {
+
+    await hre.run("mos:setLightClient", {
+    });
+
+    await hre.run("mos:setFeeService", {
+    });
+
+    await hre.run("fee:update", {});
+});
 
 task("mos:list", "List mos info")
     .addOptionalParam("mos", "The mos address, default mos", "", types.string)

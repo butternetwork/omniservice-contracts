@@ -81,6 +81,7 @@ task("relay:update", "Register altchain mos to relay chain").setAction(async (ta
             chain: chain.name,
             address: chain.mos,
         });
+        console.log("");
     }
 
     await hre.run("fee:update", {});

@@ -23,6 +23,7 @@ module.exports = {
   },
   abiExporter: {
     path: './abi',
+    only: [":IMOS*", ":IMapo*", ":Omni*", ":IFee*"],
     clear: false,
     flat: true
   },
@@ -192,7 +193,16 @@ module.exports = {
       Bsc:  process.env.API_KEY_BSC,
       polygon: process.env.API_KEY_MATIC,
       Blast: process.env.API_KEY_BLAST,
-      Base: process.env.API_KEY_BASE
+      Base: process.env.API_KEY_BASE,
+      zkSync: process.env.API_KEY_ZKSYNC,
+      Optimism: process.env.API_KEY_OP,
+      Arbitrum: process.env.API_KEY_ARBITRUM,
+      Linea: process.env.API_KEY_LINEA,
+      Scroll: process.env.API_KEY_SCROLL,
+      Mantle: process.env.API_KEY_MANTLE,
+      Sepolia: process.env.API_KEY_ETH,
+      BscTest: process.env.API_KEY_BSC,
+      ArbitrumSepolia: process.env.API_KEY_ARBITRUM,
     },
     customChains: [
       {
@@ -208,7 +218,15 @@ module.exports = {
         chainId: 1,
         urls: {
           apiURL: "https://api.etherscan.io/api",
-          browserURL: "https://etherscan.com/",
+          browserURL: "https://etherscan.io/",
+        },
+      },
+      {
+        network: "Sepolia",
+        chainId: 11155111,
+        urls: {
+          apiURL: "https://api-sepolia.etherscan.io/api",
+          browserURL: "https://sepolia.etherscan.io/",
         },
       },
       {
@@ -217,6 +235,14 @@ module.exports = {
         urls: {
           apiURL: "https://api.bscscan.com/api",
           browserURL: "https://bscscan.com/",
+        },
+      },
+      {
+        network: "BscTest",
+        chainId: 97,
+        urls: {
+          apiURL: "https://api-testnet.bscscan.com/api",
+          browserURL: "https://testnet.bscscan.com/",
         },
       },
       {
@@ -243,6 +269,62 @@ module.exports = {
           browserURL: "https://basescan.org/",
         },
       },
+      {
+        network: "zkSync",
+        chainId: 324,
+        urls: {
+          apiURL: "https://api-era.zksync.network/api",
+          browserURL: "https://era.zksync.network/",
+        },
+      },
+      {
+        network: "Optimism",
+        chainId: 10,
+        urls: {
+          apiURL: "https://api-optimistic.etherscan.io/api",
+          browserURL: "https://optimistic.etherscan.io/",
+        },
+      },
+      {
+        network: "Arbitrum",
+        chainId: 42161,
+        urls: {
+          apiURL: "https://api.arbiscan.io/api",
+          browserURL: "https://arbiscan.io/",
+        },
+      },
+      {
+        network: "ArbitrumSepolia",
+        chainId: 421614,
+        urls: {
+          apiURL: "https://api-sepolia.arbiscan.io/api",
+          browserURL: "https://sepolia.arbiscan.io/",
+        },
+      },
+      {
+        network: "Linea",
+        chainId: 59144,
+        urls: {
+          apiURL: "https://api.lineascan.build/api",
+          browserURL: "https://lineascan.build",
+        },
+      },
+      {
+        network: "Scroll",
+        chainId: 534352,
+        urls: {
+          apiURL: "https://api.scrollscan.com/api",
+          browserURL: "https://scrollscan.com/",
+        },
+      },
+      {
+        network: "Mantle",
+        chainId: 5000,
+        urls: {
+          apiURL: "https://api.mantlescan.xyz/api",
+          browserURL: "https://mantlescan.xyz/",
+        },
+      }
     ],
   },
 }

@@ -1,12 +1,4 @@
-const {
-    getFeeService,
-    getFee,
-    getFeeConfig,
-    getToken,
-    getChain,
-    getChainList,
-    saveFeeList,
-} = require("./utils/utils");
+const { getFeeService, getFee, getFeeConfig, getToken, getChain, getChainList, saveFeeList } = require("./utils/utils");
 
 const { isTron } = require("../utils/helper");
 
@@ -82,9 +74,10 @@ task("fee:setBaseGas", "set target chain base gas limit")
                 updateGasList.push(gasList[i]);
                 console.log(`target chain [${chain.name}] base gas limt [${baseGas.toString()}] => [${gasList[i]}]`);
             }
-
-            await feeService.setBaseGas(updateChainList, updateGasList).send();
-            console.log(`Update chain [${updateChainList}] base gas limit]`);
+            if (updateChainList.length > 0) {
+                await feeService.setBaseGas(updateChainList, updateGasList).send();
+                console.log(`Update chain [${updateChainList}] base gas limit]`);
+            }
         } else {
             for (let i = 0; i < chainList.length; i++) {
                 let chain = chainList[i];
@@ -98,8 +91,10 @@ task("fee:setBaseGas", "set target chain base gas limit")
                 console.log(`chain [${chain.name}] base gas limt [${baseGas.toString()}] => [${gasList[i]}]`);
             }
 
-            await feeService.setBaseGas(updateChainList, updateGasList);
-            console.log(`Update chain [${updateChainList}] base gas limit`);
+            if (updateChainList.length > 0) {
+                await feeService.setBaseGas(updateChainList, updateGasList);
+                console.log(`Update chain [${updateChainList}] base gas limit`);
+            }
         }
     });
 
@@ -131,32 +126,38 @@ task("fee:setTargetPrice", "set chain message fee")
             for (let i = 0; i < chainList.length; i++) {
                 let chain = chainList[i];
                 let gasPrice = await feeService.chainGasPrice(chain.chainId, token).call();
-                if (gasPrice === priceList[i]) {
-                    console.log(`chain [${taskArgs.chain}] token [${taskArgs.token}] gas price no update`);
+                if (gasPrice.toString() === priceList[i]) {
+                    console.log(`chain [${chain.name}] token [${taskArgs.token}] gas price no update`);
                     continue;
                 }
                 updateChainList.push(chain.chainId);
                 updatePriceList.push(priceList[i]);
-                console.log(`chain [${chain.name}] token [${taskArgs.token}] gas price [${gasPrice}] => [${priceList[i]}]`);
+                console.log(
+                    `chain [${chain.name}] token [${taskArgs.token}] gas price [${gasPrice}] => [${priceList[i]}]`,
+                );
             }
-
-            await feeService.setChainGasPrice(token, updateChainList, updatePriceList).send();
-            console.log(`Update chain [${updateChainList}] token [${taskArgs.token}] gas price`);
+            if (updateChainList.length > 0) {
+                await feeService.setChainGasPrice(token, updateChainList, updatePriceList).send();
+                console.log(`Update chain [${updateChainList}] token [${taskArgs.token}] gas price`);
+            }
         } else {
             for (let i = 0; i < chainList.length; i++) {
                 let chain = chainList[i];
                 let gasPrice = await feeService.chainGasPrice(chain.chainId, token);
-                if (gasPrice === priceList[i]) {
-                    console.log(`chain [${taskArgs.chain}] token [${taskArgs.token}] gas price no update`);
+                if (gasPrice.toString() === priceList[i]) {
+                    console.log(`chain [${chain.name}] token [${taskArgs.token}] gas price no update`);
                     continue;
                 }
                 updateChainList.push(chain.chainId);
                 updatePriceList.push(priceList[i]);
-                console.log(`chain [${chain.name}] token [${taskArgs.token}] gas price [${gasPrice}] => [${priceList[i]}]`);
+                console.log(
+                    `chain [${chain.name}] token [${taskArgs.token}] gas price [${gasPrice}] => [${priceList[i]}]`,
+                );
             }
-
-            await feeService.setChainGasPrice(token, updateChainList, updatePriceList);
-            console.log(`Update chain [${updateChainList}] token [${taskArgs.token}] gas price\n`);
+            if (updateChainList.length > 0) {
+                await feeService.setChainGasPrice(token, updateChainList, updatePriceList);
+                console.log(`Update chain [${updateChainList}] token [${taskArgs.token}] gas price\n`);
+            }
         }
     });
 
@@ -167,12 +168,14 @@ task("fee:update", "update chain message fee")
         const deployer = accounts[0];
         console.log("deployer address:", deployer.address);
 
+        console.log("===== fee receiver ========");
         let feeConfig = await getFeeConfig(hre.network.name);
         // set fee receiver
         await hre.run("fee:setReceiver", {
             receiver: feeConfig.feeRecevier,
             service: taskArgs.service,
         });
+
 
         let addChainList = [];
         let addBaseList = [];
@@ -196,6 +199,7 @@ task("fee:update", "update chain message fee")
         // console.log("add list", addChainList);
         console.log("remove list", removeChainList);
         if (removeChainList.length > 0) {
+            console.log("===== remove chain ========");
             await hre.run("fee:setBaseGas", {
                 chain: removeChainList.toString(),
                 gas: removeBaseList.toString(),
@@ -203,12 +207,14 @@ task("fee:update", "update chain message fee")
             });
         }
 
+        console.log("===== base gas ========");
         await hre.run("fee:setBaseGas", {
             chain: addChainList.toString(),
             gas: addBaseList.toString(),
             service: taskArgs.service,
         });
 
+        console.log("===== gas price ========");
         let fee = await getFee(hre.network.name);
         for (let token in fee) {
             let priceList = [];

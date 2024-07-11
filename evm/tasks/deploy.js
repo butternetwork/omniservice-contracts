@@ -20,7 +20,7 @@ task("deploy:fee", "Deploy the upgradeable MOS contract and initialize it")
 
         await writeToFile(deployment);
 
-        await verify(implAddr, [], "contracts/FeeService.sol:FeeService", hre.network.config.chainId, true);
+        await verify(hre, implAddr, [], "contracts/FeeService.sol:FeeService", true);
     });
 
 task("deploy:mos", "Deploy the upgradeable MOS contract and initialize it")
@@ -57,15 +57,9 @@ task("deploy:mos", "Deploy the upgradeable MOS contract and initialize it")
         deployment[hre.network.config.chainId]["mosAddress"] = proxyAddr;
         await writeToFile(deployment);
 
-        await verify(implAddr, [], "contracts/OmniService.sol:OmniService", hre.network.config.chainId, true);
+        await verify(hre, implAddr, [], "contracts/OmniService.sol:OmniService", true);
 
-        await verify(
-            proxyAddr,
-            [implAddr, data],
-            "contracts/OmniServiceProxy.sol:OmniServiceProxy",
-            hre.network.config.chainId,
-            true,
-        );
+        await verify(hre, proxyAddr, [implAddr, data], "contracts/OmniServiceProxy.sol:OmniServiceProxy", true);
     });
 
 task("deploy:upgrade", "upgrade mos evm contract in proxy")
@@ -98,7 +92,7 @@ task("deploy:upgrade", "upgrade mos evm contract in proxy")
             console.log("impl address:", await proxy.getImplementation());
         }
 
-        await verify(implAddr, [], "contracts/OmniService.sol:OmniService", hre.network.config.chainId, true);
+        await verify(hre, implAddr, [], "contracts/OmniService.sol:OmniService", true);
 
         console.log(`upgrade MOS success`);
     });

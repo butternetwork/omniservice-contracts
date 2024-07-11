@@ -29,7 +29,7 @@ abstract contract OmniServiceCore is
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
     uint256 public immutable selfChainId = block.chainid;
-    uint256 public constant gasLimitMin = 21000;
+    uint256 public constant gasLimitMin = 5000;
     uint256 public constant gasLimitMax = 10000000;
     uint256 public nonce;
 
@@ -41,7 +41,15 @@ abstract contract OmniServiceCore is
 
     mapping(bytes32 => bytes32) public storedMessageList;
 
-    event TransferOut(address indexed initiator, address indexed referrer, address indexed sender, bytes32 orderId, bytes32 transferId,  address feeToken, uint256 fee);
+    event MessageTransfer(
+        address indexed initiator,
+        address indexed referrer,
+        address indexed sender,
+        bytes32 orderId,
+        bytes32 transferId,
+        address feeToken,
+        uint256 fee
+    );
 
     event SetFeeService(address indexed feeServiceAddress);
 
@@ -74,9 +82,7 @@ abstract contract OmniServiceCore is
         paused() ? _unpause() : _pause();
     }
 
-    function setFeeService(
-        address _feeServiceAddress
-    ) external onlyRole(MANAGER_ROLE) {
+    function setFeeService(address _feeServiceAddress) external onlyRole(MANAGER_ROLE) {
         feeService = IFeeService(_feeServiceAddress);
         emit SetFeeService(_feeServiceAddress);
     }
@@ -85,7 +91,11 @@ abstract contract OmniServiceCore is
         _setBaseGas(_chainList, _limitList);
     }
 
-    function setChainGasPrice(address _token, uint256[] memory _chainList,  uint256[] memory _priceList) external onlyRole(MANAGER_ROLE) {
+    function setChainGasPrice(
+        address _token,
+        uint256[] memory _chainList,
+        uint256[] memory _priceList
+    ) external onlyRole(MANAGER_ROLE) {
         _setChainGasPrice(_token, _chainList, _priceList);
     }
 
@@ -141,7 +151,7 @@ abstract contract OmniServiceCore is
     ) external payable virtual whenNotPaused returns (bytes32) {
         (bytes32 orderId, uint256 feeAmount) = _transferOut(_toChain, _messageData, _feeToken);
 
-        emit TransferOut(msg.sender, address(0), msg.sender, orderId, bytes32(0), _feeToken, feeAmount);
+        emit MessageTransfer(msg.sender, address(0), msg.sender, orderId, bytes32(0), _feeToken, feeAmount);
 
         _notifyLightClient(_toChain, bytes(""));
 
@@ -158,7 +168,7 @@ abstract contract OmniServiceCore is
     ) external payable virtual whenNotPaused returns (bytes32) {
         (bytes32 orderId, uint256 feeAmount) = _transferOut(_toChain, _messageData, _feeToken);
 
-        emit TransferOut(_initiator, _referrer, msg.sender, orderId, _transferId, _feeToken, feeAmount);
+        emit MessageTransfer(_initiator, _referrer, msg.sender, orderId, _transferId, _feeToken, feeAmount);
 
         _notifyLightClient(_toChain, bytes(""));
 
@@ -167,13 +177,17 @@ abstract contract OmniServiceCore is
 
     function _notifyLightClient(uint256 _chainId, bytes memory _data) internal virtual {}
 
-    function _transferOut(uint256 _toChain, bytes memory _messageData, address _feeToken) internal returns (bytes32, uint256) {
+    function _transferOut(
+        uint256 _toChain,
+        bytes memory _messageData,
+        address _feeToken
+    ) internal returns (bytes32, uint256) {
         require(_toChain != selfChainId, "MOSV3: only other chain");
 
         MessageData memory msgData = abi.decode(_messageData, (MessageData));
 
         require(msgData.gasLimit >= gasLimitMin, "MOSV3: gas too low");
-        require(msgData.gasLimit <= gasLimitMax, "MOSV3: gas too high");
+        //require(msgData.gasLimit <= gasLimitMax, "MOSV3: gas too high");
         require(msgData.value == 0, "MOSV3: not support msg value");
 
         // TODO: check payload length

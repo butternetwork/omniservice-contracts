@@ -2,7 +2,7 @@ const { ethers } = require("hardhat");
 const { expect } = require("chai");
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
-describe("MAPO ServiceV3 start test", () => {
+describe("OmniServiceV3 start test", () => {
     let owner;
     let addr1;
 
@@ -50,7 +50,7 @@ describe("MAPO ServiceV3 start test", () => {
         return { os, echo, feeService, owner, addr1, lightNode };
     }
 
-    describe("MapoService start test", () => {
+    describe("OmniService start test", () => {
         it("osMessage set ", async function () {
             let { os, echo, feeService, owner, addr1, lightNode } = await loadFixture(deployOSContractFixture);
 
