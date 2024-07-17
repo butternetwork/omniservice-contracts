@@ -1,4 +1,4 @@
-const { getFeeService, getFee, getFeeConfig, getToken, getChain, getChainList, saveFeeList } = require("./utils/utils");
+const { getFeeService, getFee, getFeeConfig, getToken, getChain, getChainList, saveFeeList, getOmniService} = require("./utils/utils");
 
 const { isTron } = require("../utils/helper");
 
@@ -218,7 +218,8 @@ task("fee:update", "update chain message fee")
         for (let token in fee) {
             let priceList = [];
             for (let chain of addChainList) {
-                priceList.push(fee[token][chain]);
+                let price = ethers.utils.parseUnits(fee[token][chain], 9);
+                priceList.push(price.toString());
             }
             await hre.run("fee:setTargetPrice", {
                 chain: addChainList.toString(),
@@ -253,7 +254,8 @@ task("fee:updateFee", "List mos info")
                 let targetGasPrice = ethers.utils.parseUnits(targetFeeConfig.gasPrice, 9); // gwei
                 let targetNativePrice = ethers.utils.parseUnits(targetFeeConfig.nativePrice, 6);
                 let price = targetGasPrice.mul(targetNativePrice).div(nativePrice);
-                nativePriceList[targetChain.name] = price.toString();
+                let gPrice = ethers.utils.formatUnits(price, 9);
+                nativePriceList[targetChain.name] = gPrice;
             }
             feeList[chain.name]["native"] = nativePriceList;
         }
@@ -268,6 +270,7 @@ task("fee:updateFee", "List mos info")
 task("fee:list", "List mos info")
     .addOptionalParam("service", "the fee service address", "", types.string)
     .setAction(async (taskArgs, hre) => {
+        let mos = await getOmniService(hre, "");
         let feeService = await getFeeService(hre, taskArgs.service);
 
         // console.log("owner:\t", await feeService.owner());
@@ -280,8 +283,13 @@ task("fee:list", "List mos info")
             let baseFee = await feeService.baseGas(chainId);
             if (!baseFee.eq(0)) {
                 let price = await feeService.chainGasPrice(chainId, ethers.constants.AddressZero);
-                console.log(`${chains[i].name} (${chainId}) \t base fee [${baseFee}] gas price [${price}]`);
+
+                let fee = await mos.getMessageFee(chainId, ethers.constants.AddressZero, 1000000);
+
+                let nativeFee= ethers.utils.formatUnits(fee[0], "ether");
+                console.log(`${chains[i].name} (${chainId}) \t base fee [${baseFee}] gas price [${price}]\t fee [${nativeFee}] when limit [1,000,000]`);
             }
+
         }
         console.log("");
     });

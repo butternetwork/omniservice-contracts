@@ -2,127 +2,29 @@
     "Mapo": {
         "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
         "baseGas": 1000000,
-        "nativePrice": "0.0075",
+        "nativePrice": "0.01",
         "gasPrice": "700",
         "nontarget": []
     },
     "Eth": {
         "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
-        "baseGas": 1000000,
-        "nativePrice": "2990",
-        "gasPrice": "20",
+        "baseGas": 600000,
+        "nativePrice": "3500",
+        "gasPrice": "10",
         "nontarget": []
     },
     "Bsc": {
         "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
-        "baseGas": 1000000,
-        "nativePrice": "500",
+        "baseGas": 1200000,
+        "nativePrice": "560",
         "gasPrice": "1",
         "nontarget": []
     },
-    "Polygon": {
+    "Matic": {
         "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
-        "baseGas": 1000000,
-        "nativePrice": "0.49",
+        "baseGas": 1200000,
+        "nativePrice": "0.56",
         "gasPrice": "40",
-        "nontarget": []
-    },
-    "zkSync": {
-        "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
-        "baseGas": 1000000,
-        "nativePrice": "2990",
-        "gasPrice": "0.025",
-        "nontarget": []
-    },
-    "Arbitrum": {
-        "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
-        "baseGas": 1000000,
-        "nativePrice": "2990",
-        "gasPrice": "0.02",
-        "nontarget": []
-    },
-    "Optimism": {
-        "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
-        "baseGas": 1000000,
-        "nativePrice": "2990",
-        "gasPrice": "0.08",
-        "nontarget": []
-    },
-    "Base": {
-        "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
-        "baseGas": 1000000,
-        "nativePrice": "2990",
-        "gasPrice": "0.004",
-        "nontarget": []
-    },
-    "Blast": {
-        "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
-        "baseGas": 1000000,
-        "nativePrice": "2990",
-        "gasPrice": "0.1",
-        "nontarget": []
-    },
-    "Mantle": {
-        "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
-        "baseGas": 1000000,
-        "nativePrice": "0.8",
-        "gasPrice": "100",
-        "nontarget": []
-    },
-    "Linea": {
-        "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
-        "baseGas": 1000000,
-        "nativePrice": "2990",
-        "gasPrice": "0.06",
-        "nontarget": []
-    },
-    "Scroll": {
-        "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
-        "baseGas": 1000000,
-        "nativePrice": "2990",
-        "gasPrice": "0.5",
-        "nontarget": []
-    },
-    "Conflux": {
-        "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
-        "baseGas": 1000000,
-        "nativePrice": "0.13",
-        "gasPrice": "20",
-        "nontarget": []
-    },
-    "Klaytn": {
-        "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
-        "baseGas": 1000000,
-        "nativePrice": "0.15",
-        "gasPrice": "50",
-        "nontarget": []
-    },
-    "Tron": {
-        "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
-        "baseGas": 1000000,
-        "nativePrice": "0.13",
-        "gasPrice": "100",
-        "nontarget": []
-    },
-    "Merlin": {
-        "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
-        "baseGas": 1000000,
-        "nativePrice": "57050",
-        "gasPrice": "0.05",
-        "nontarget": []
-    },
-    "Ainn": {
-        "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
-        "baseGas": 1000000,
-        "nativePrice": "57050",
-        "gasPrice": "0.05",
-        "nontarget": []
-    },
-    "Near": {
-        "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
-        "baseGas": 1000000,
-        "nativePrice": "4.6",
-        "gasPrice": "200",
         "nontarget": []
     }
 }

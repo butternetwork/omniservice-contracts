@@ -1,42 +1,42 @@
 {
 	"Makalu": {
 		"native": {
-			"Sepolia": "1000000000000",
-			"BscTest": "50000000000",
-			"ArbitrumSepolia": "50000000000",
-			"DodoTest": "20000000000"
+			"Sepolia": "100.0",
+			"BscTest": "20.0",
+			"ArbitrumSepolia": "50.0",
+			"DodoTest": "2.0"
 		}
 	},
 	"Sepolia": {
 		"native": {
-			"Makalu": "1000000",
-			"BscTest": "50000000",
-			"ArbitrumSepolia": "50000000",
-			"DodoTest": "2000000"
+			"Makalu": "0.01",
+			"BscTest": "0.2",
+			"ArbitrumSepolia": "0.5",
+			"DodoTest": "0.02"
 		}
 	},
 	"BscTest": {
 		"native": {
-			"Makalu": "20000000",
-			"Sepolia": "200000000",
-			"ArbitrumSepolia": "100000000",
-			"DodoTest": "40000000"
+			"Makalu": "0.05",
+			"Sepolia": "5.0",
+			"ArbitrumSepolia": "2.5",
+			"DodoTest": "0.1"
 		}
 	},
 	"ArbitrumSepolia": {
 		"native": {
-			"Makalu": "1000000",
-			"Sepolia": "100000000",
-			"BscTest": "50000000",
-			"DodoTest": "20000000"
+			"Makalu": "0.01",
+			"Sepolia": "1.0",
+			"BscTest": "0.2",
+			"DodoTest": "0.02"
 		}
 	},
 	"DodoTest": {
 		"native": {
-			"Makalu": "500000000",
-			"Sepolia": "5000000000",
-			"BscTest": "2500000000",
-			"ArbitrumSepolia": "2500000000"
+			"Makalu": "0.5",
+			"Sepolia": "50.0",
+			"BscTest": "10.0",
+			"ArbitrumSepolia": "25.0"
 		}
 	}
 }

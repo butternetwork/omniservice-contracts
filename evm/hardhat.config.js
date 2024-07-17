@@ -54,7 +54,7 @@ module.exports = {
     },
 
     Bsc: {
-      url: `https://rpc.ankr.com/bsc`,
+      url: `https://bsc.blockpi.network/v1/rpc/public`,
       chainId: 56,
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },

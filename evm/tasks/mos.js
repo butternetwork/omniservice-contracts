@@ -3,8 +3,8 @@ const { isTron } = require("../utils/helper");
 
 task("mos:deploy", "Deploy the upgradeable MOS contract and initialize it")
     .addOptionalParam("client", "lightNode contract address", "", types.string)
-    .addParam("relaychain", "relay chain id", 22776, types.int)
-    .addOptionalParam("relayaddress", "relay contract address", "", types.string)
+    .addParam("relaychain", "relay chain id")
+    .addOptionalParam("relay", "relay contract address", "", types.string)
     .addOptionalParam("fee", "fee service", "", types.string)
     .addOptionalParam("salt", "deploy contract salt", "", types.string)
     .addOptionalParam("factory", "mos contract address", DEPLOY_FACTORY, types.string)
@@ -20,6 +20,7 @@ task("mos:deploy", "Deploy the upgradeable MOS contract and initialize it")
 
         await hre.run("mos:setRelay", {
             chain: taskArgs.relaychain,
+            relay: taskArgs.relay
         });
 
         await hre.run("mos:setLightClient", {
@@ -27,22 +28,22 @@ task("mos:deploy", "Deploy the upgradeable MOS contract and initialize it")
         });
 
         await hre.run("mos:setFeeService", {
-            client: taskArgs.client,
+            client: taskArgs.fee,
         });
     });
 
 task("mos:setRelay", "Initialize MOSRelay address for MOS")
-    .addParam("chain", "relay chain id", 22776, types.int)
-    .addOptionalParam("relay", "mos relay contract address", "latest", types.string)
+    .addParam("chain", "relay chain id")
+    .addOptionalParam("relay", "mos relay contract address", "", types.string)
     .setAction(async (taskArgs, hre) => {
         const accounts = await ethers.getSigners();
         const deployer = accounts[0];
-        console.log("deployer address:", deployer.address);
+        console.log("setRelay deployer address:", deployer.address);
 
         let mos = await getOmniService(hre, "");
 
         let relayAddr = taskArgs.relay;
-        if (taskArgs.relay === "latest") {
+        if (taskArgs.relay === "") {
             let relayChain = await getChain(hre.network.name, taskArgs.chain);
             relayAddr = relayChain["mos"];
         }
@@ -75,12 +76,12 @@ task("mos:setLightClient", "Initialize MOSRelay address for MOS")
     .setAction(async (taskArgs, hre) => {
         const accounts = await ethers.getSigners();
         const deployer = accounts[0];
-        console.log("deployer address:", deployer.address);
+        console.log("setLightClient deployer address:", deployer.address);
 
         let mos = await getOmniService(hre, "");
         let clientAddr = taskArgs.client;
         if (taskArgs.client === "") {
-            let chain = await getChain(hre.network.name, hre.network.name);
+            let chain = await getChain(hre.network.name, hre.network.config.chainId);
             clientAddr = chain.lightNode;
         }
 
@@ -105,17 +106,17 @@ task("mos:setLightClient", "Initialize MOSRelay address for MOS")
     });
 
 task("mos:setFeeService", "Set message fee service address ")
-    .addOptionalParam("fee", "message fee address", "latest", types.string)
+    .addOptionalParam("fee", "message fee address", "", types.string)
     .setAction(async (taskArgs, hre) => {
         const accounts = await ethers.getSigners();
         const deployer = accounts[0];
-        console.log("deployer address:", deployer.address);
+        console.log("setFeeService deployer address:", deployer.address);
 
         let mos = await getOmniService(hre, "");
 
         let feeService = taskArgs.fee;
-        if (taskArgs.fee === "latest") {
-            let chain = await getChain(hre.network.name, hre.network.name);
+        if (taskArgs.fee === "") {
+            let chain = await getChain(hre.network.name, hre.network.config.chainId);
             feeService = chain["feeService"];
         }
 
