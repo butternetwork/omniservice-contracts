@@ -55,11 +55,35 @@ contract OmniService is OmniServiceCore {
         _transferIn(outEvent, false);
     }
 
+    function transferInWithOrderId(
+        uint256 _chainId,
+        uint256 _logIndex,
+        bytes32 _orderId,
+        bytes memory _receiptProof
+    ) external virtual nonReentrant whenNotPaused {
+        require(!orderList[_orderId],"OS: order exist");
+        IEvent.dataOutEvent memory outEvent = _transferInVerify(_chainId, _logIndex, _receiptProof);
+
+        _transferIn(outEvent, false);
+    }
+
     function transferInVerify(
         uint256 _chainId,
         uint256 _logIndex,
         bytes memory _receiptProof
     ) external virtual nonReentrant whenNotPaused {
+        IEvent.dataOutEvent memory outEvent = _transferInVerify(_chainId, _logIndex, _receiptProof);
+
+        _transferIn(outEvent, true);
+    }
+
+    function transferInVerifyWithOrderId(
+        uint256 _chainId,
+        uint256 _logIndex,
+        bytes32 _orderId,
+        bytes memory _receiptProof
+    ) external virtual nonReentrant whenNotPaused {
+        require(!orderList[_orderId],"OS: order exist");
         IEvent.dataOutEvent memory outEvent = _transferInVerify(_chainId, _logIndex, _receiptProof);
 
         _transferIn(outEvent, true);

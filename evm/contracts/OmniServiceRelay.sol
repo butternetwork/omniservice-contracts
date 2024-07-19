@@ -71,6 +71,40 @@ contract OmniServiceRelay is OmniServiceCore {
         }
     }
 
+    function transferInWithOrderId(
+        uint256 _chainId,
+        uint256 _logIndex,
+        bytes32 _orderId,
+        bytes memory _receiptProof
+    ) external nonReentrant whenNotPaused {
+        require(!orderList[_orderId],"OS: order exist");
+        (bool success, string memory message, bytes memory logArray) = lightClientManager.verifyProofDataWithCache(
+            _chainId,
+            _receiptProof
+        );
+        require(success, message);
+        if (chainTypes[_chainId] == ChainType.NEAR) {
+            (bytes memory mosContract, IEvent.transferOutEvent[] memory outEvents) = NearDecoder.decodeNearLog(
+                logArray
+            );
+            IEvent.transferOutEvent memory outEvent = outEvents[_logIndex];
+            require(outEvent.toChain != 0, "MOSV3: invalid target chain id");
+            require(Utils.checkBytes(mosContract, mosContracts[_chainId]), "MOSV3: invalid mos contract");
+            // TODO support near
+        } else if (chainTypes[_chainId] == ChainType.EVM) {
+            LogDecoder.txLog memory log = LogDecoder.decodeTxLog(logArray, _logIndex);
+            bytes32 topic = abi.decode(log.topics[0], (bytes32));
+            require(topic == EvmDecoder.MAP_MESSAGE_TOPIC, "MOSV3: invalid topic");
+            bytes memory mosContract = Utils.toBytes(log.addr);
+            require(Utils.checkBytes(mosContract, mosContracts[_chainId]), "MOSV3: invalid mos contract");
+
+            (, IEvent.dataOutEvent memory outEvent) = EvmDecoder.decodeDataLog(log);
+            _transferIn(_chainId, outEvent);
+        } else {
+            require(false, "MOSV3: invalid chain type");
+        }
+    }
+
     function retryMessageIn(
         uint256 _fromChain,
         bytes32 _orderId,
