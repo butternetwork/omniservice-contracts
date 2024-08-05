@@ -26,5 +26,19 @@
         "nativePrice": "0.56",
         "gasPrice": "40",
         "nontarget": []
+    },
+    "Merlin": {
+        "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
+        "baseGas": 400000,
+        "nativePrice": "64000",
+        "gasPrice": "0.07",
+        "nontarget": []
+    },
+    "zkSync": {
+        "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
+        "baseGas": 400000,
+        "nativePrice": "3500",
+        "gasPrice": "0.05",
+        "nontarget": []
     }
 }

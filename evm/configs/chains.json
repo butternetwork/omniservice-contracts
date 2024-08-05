@@ -30,5 +30,21 @@
         "mos": "0x000030fB6c4701389B05F124F6fFd4C862CF1eF9",
         "feeService": "0x0000000000000000000000000000000000000000",
         "lightNode": "0x0001805c0b57dbd48b5c5c26e237a135ddc678ae"
+    },
+    {
+        "name": "Merlin",
+        "chainId": "4200",
+        "type": "evm",
+        "mos": "0x000030fB6c4701389B05F124F6fFd4C862CF1eF9",
+        "feeService": "0x0000000000000000000000000000000000000000",
+        "lightNode": "0x1cbB3ACbD5f8817c75A83A62135A8CF2F86EEd48"
+    },
+    {
+        "name": "zkSync",
+        "chainId": "324",
+        "type": "evm",
+        "mos": "0xa6D3Af581e15B391D77152034E225b32564208B6",
+        "feeService": "0x0000000000000000000000000000000000000000",
+        "lightNode": "0xA9bDC7D5738d88A6F082b2580A4a425697Da9E5D"
     }
 ]

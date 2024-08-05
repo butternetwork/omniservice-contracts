@@ -61,7 +61,7 @@ contract OmniService is OmniServiceCore {
         bytes32 _orderId,
         bytes memory _receiptProof
     ) external virtual nonReentrant whenNotPaused {
-        require(!orderList[_orderId],"OS: order exist");
+        require(!orderList[_orderId], "MOSV3: Order exist");
         IEvent.dataOutEvent memory outEvent = _transferInVerify(_chainId, _logIndex, _receiptProof);
 
         _transferIn(outEvent, false);
@@ -83,7 +83,7 @@ contract OmniService is OmniServiceCore {
         bytes32 _orderId,
         bytes memory _receiptProof
     ) external virtual nonReentrant whenNotPaused {
-        require(!orderList[_orderId],"OS: order exist");
+        require(!orderList[_orderId], "MOSV3: Order exist");
         IEvent.dataOutEvent memory outEvent = _transferInVerify(_chainId, _logIndex, _receiptProof);
 
         _transferIn(outEvent, true);

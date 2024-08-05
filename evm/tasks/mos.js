@@ -20,7 +20,7 @@ task("mos:deploy", "Deploy the upgradeable MOS contract and initialize it")
 
         await hre.run("mos:setRelay", {
             chain: taskArgs.relaychain,
-            relay: taskArgs.relay
+            relay: taskArgs.relay,
         });
 
         await hre.run("mos:setLightClient", {
@@ -139,6 +139,49 @@ task("mos:setFeeService", "Set message fee service address ")
         }
     });
 
+task("mos:grant", "grant role")
+    .addParam("role", "role address")
+    .addParam("account", "account address")
+    .addOptionalParam("grant", "grant or revoke", true, types.boolean)
+    .setAction(async (taskArgs, hre) => {
+        const { deploy } = hre.deployments;
+        const accounts = await ethers.getSigners();
+        const deployer = accounts[0];
+
+        let role;
+        if (taskArgs.role === "upgrade" || taskArgs.role === "upgrader") {
+            role = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("UPGRADER_ROLE"));
+        } else if (taskArgs.role === "manage" || taskArgs.role === "manager") {
+            role = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("MANAGER_ROLE"));
+        } else {
+            role = ethers.constants.HashZero;
+        }
+
+        let mos = await getOmniService(hre, "");
+
+        if (isTron(hre.network.config.chainId)) {
+            let hasRole = await mos.hasRole(role, taskArgs.account).call();
+            if (hasRole) {
+                console.log(`[${taskArgs.account}] with role [${taskArgs.role}] no update`);
+                return;
+            }
+            await mos.grantRole(role, taskArgs.account).send();
+            console.log(
+                `set [${taskArgs.account}] hash role [${taskArgs.role}] [${await mos.hasRole(role, taskArgs.account).call()}] `,
+            );
+        } else {
+            let hasRole = await mos.hasRole(role, taskArgs.account);
+            if (hasRole) {
+                console.log(`[${taskArgs.account}] with role [${taskArgs.role}] no update`);
+                return;
+            }
+            await (await mos.grantRole(role, taskArgs.account)).wait();
+            console.log(
+                `set [${taskArgs.account}] hash role [${taskArgs.role}] [${await mos.hasRole(role, taskArgs.account)}] `,
+            );
+        }
+    });
+
 task("mos:update", "mos update").setAction(async (taskArgs, hre) => {
     await hre.run("mos:setLightClient", {});
 
@@ -146,6 +189,32 @@ task("mos:update", "mos update").setAction(async (taskArgs, hre) => {
 
     await hre.run("fee:update", {});
 });
+
+task("mos:listMember", "List member info")
+    .addOptionalParam("mos", "The mos address, default mos", "", types.string)
+    .addParam("role", "role address")
+    .setAction(async (taskArgs, hre) => {
+        let role;
+        if (taskArgs.role === "upgrade" || taskArgs.role === "upgrader") {
+            role = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("UPGRADER_ROLE"));
+        } else if (taskArgs.role === "manage" || taskArgs.role === "manager") {
+            role = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("MANAGER_ROLE"));
+        } else if (taskArgs.role === "admin") {
+            role = ethers.constants.HashZero;
+        } else {
+            console.log(`invalid role [${taskArgs.role}]`);
+            return;
+        }
+        let mos = await getOmniService(hre, taskArgs.mos);
+
+        let count = await mos.getRoleMemberCount(role);
+        console.log(`role [${taskArgs.role}] has [${count}] member(s)`);
+
+        for (let i = 0; i < count; i++) {
+            let member = await mos.getRoleMember(role, i);
+            console.log(`    ${i}: ${member}`);
+        }
+    });
 
 task("mos:list", "List mos info")
     .addOptionalParam("mos", "The mos address, default mos", "", types.string)
@@ -165,6 +234,16 @@ task("mos:list", "List mos info")
         console.log("relay contract:\t", await mos.relayContract());
         console.log("Impl:\t", await mos.getImplementation());
 
+        console.log("");
+        await hre.run("mos:listMember", {
+            role: "admin",
+        });
+        await hre.run("mos:listMember", {
+            role: "manager",
+        });
+        await hre.run("mos:listMember", {
+            role: "upgrader",
+        });
         console.log("");
 
         await hre.run("fee:list", {});

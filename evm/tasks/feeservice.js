@@ -1,4 +1,13 @@
-const { getFeeService, getFee, getFeeConfig, getToken, getChain, getChainList, saveFeeList, getOmniService} = require("./utils/utils");
+const {
+    getFeeService,
+    getFee,
+    getFeeConfig,
+    getToken,
+    getChain,
+    getChainList,
+    saveFeeList,
+    getOmniService,
+} = require("./utils/utils");
 
 const { isTron } = require("../utils/helper");
 
@@ -286,10 +295,11 @@ task("fee:list", "List mos info")
 
                 let fee = await mos.getMessageFee(chainId, ethers.constants.AddressZero, 1000000);
 
-                let nativeFee= ethers.utils.formatUnits(fee[0], "ether");
-                console.log(`${chains[i].name} (${chainId}) \t base fee [${baseFee}] gas price [${price}]\t fee [${nativeFee}] when limit [1,000,000]`);
+                let nativeFee = ethers.utils.formatUnits(fee[0], "ether");
+                console.log(
+                    `${chains[i].name} (${chainId}) \t base fee [${baseFee}] gas price [${price}]\t fee [${nativeFee}] when limit [1,000,000]`,
+                );
             }
-
         }
         console.log("");
     });

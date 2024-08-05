@@ -3,28 +3,54 @@
 		"native": {
 			"Eth": "4000000.0",
 			"Bsc": "56000.0",
-			"Matic": "2500.0"
+			"Matic": "2500.0",
+			"Merlin": "448000.0",
+			"zkSync": "17500.0"
 		}
 	},
 	"Eth": {
 		"native": {
 			"Mapo": "0.002",
 			"Bsc": "0.16",
-			"Matic": "0.007"
+			"Matic": "0.007",
+			"Merlin": "1.28",
+			"zkSync": "0.05"
 		}
 	},
 	"Bsc": {
 		"native": {
 			"Mapo": "0.0125",
 			"Eth": "70",
-			"Matic": "0.05"
+			"Matic": "0.05",
+			"Merlin": "8.0",
+			"zkSync": "0.3125"
 		}
 	},
 	"Matic": {
 		"native": {
 			"Mapo": "12.5",
 			"Eth": "70000.0",
-			"Bsc": "1000.0"
+			"Bsc": "1000.0",
+			"Merlin": "8000.0",
+			"zkSync": "312.5"
+		}
+	},
+	"Merlin": {
+		"native": {
+			"Mapo": "0.0001",
+			"Eth": "0.6",
+			"Bsc": "0.00875",
+			"Matic": "0.0004",
+			"zkSync": "0.003"
+		}
+	},
+	"zkSync": {
+		"native": {
+			"Mapo": "0.002",
+			"Eth": "12.0",
+			"Bsc": "0.16",
+			"Matic": "0.0064",
+			"Merlin": "1.28"
 		}
 	}
 }

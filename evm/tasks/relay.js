@@ -114,6 +114,16 @@ task("relay:list", "List mos info")
             }
         }
         console.log("");
+        await hre.run("mos:listMember", {
+            role: "admin",
+        });
+        await hre.run("mos:listMember", {
+            role: "manager",
+        });
+        await hre.run("mos:listMember", {
+            role: "upgrader",
+        });
+        console.log("");
 
         await hre.run("fee:list", {});
     });

@@ -19,6 +19,14 @@
 		"chainName": "Makalu",
 		"mosAddress": "0x800030161FD2979f0B5c54286Bd77170D3c458Da"
 	},
+	"324": {
+		"chainName": "zkSync",
+		"mosAddress": "0xa6D3Af581e15B391D77152034E225b32564208B6"
+	},
+	"4200": {
+		"chainName": "Merlin",
+		"mosAddress": "0x000030fB6c4701389B05F124F6fFd4C862CF1eF9"
+	},
 	"22776": {
 		"chainName": "Mapo",
 		"mosAddress": "0x000030fB6c4701389B05F124F6fFd4C862CF1eF9"
