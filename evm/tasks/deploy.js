@@ -1,7 +1,7 @@
 const { verify } = require("../utils/verify");
 const { getOmniService, readFromFile, writeToFile } = require("./utils/utils");
 
-const { isTron, create } = require("../utils/helper");
+const { isTron, create, toEvmAddress, fromEvmAddress} = require("../utils/helper");
 
 task("deploy:fee", "Deploy the upgradeable MOS contract and initialize it")
     .addOptionalParam("salt", "deploy contract salt", process.env.FEE_SALT, types.string)
@@ -54,7 +54,13 @@ task("deploy:mos", "Deploy the upgradeable MOS contract and initialize it")
         );
 
         deployment[hre.network.config.chainId]["chainName"] = hre.network.name;
-        deployment[hre.network.config.chainId]["mosAddress"] = proxyAddr;
+        if (isTron(hre.network.config.chainId)){
+            proxyAddr = await fromEvmAddress(proxyAddr,hre.network.name);
+            deployment[hre.network.config.chainId]["mosAddress"] = proxyAddr;
+        }else{
+            deployment[hre.network.config.chainId]["mosAddress"] = proxyAddr;
+        }
+
         await writeToFile(deployment);
 
         await verify(hre, implAddr, [], "contracts/OmniService.sol:OmniService", true);

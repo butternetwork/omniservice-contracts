@@ -9,7 +9,7 @@ const {
     getOmniService,
 } = require("./utils/utils");
 
-const { isTron } = require("../utils/helper");
+const { isTron, toEvmAddress} = require("../utils/helper");
 
 task("fee:setReceiver", "Set message fee service address ")
     .addOptionalParam("receiver", "mos contract address", "latest", types.string)
@@ -28,6 +28,7 @@ task("fee:setReceiver", "Set message fee service address ")
 
         if (isTron(hre.network.config.chainId)) {
             let onchainReceiver = await feeService.feeReceiver().call();
+            receiver = await toEvmAddress(receiver,hre.network.name)
             if (onchainReceiver === receiver) {
                 console.log(`fee receiver no update`);
                 return;

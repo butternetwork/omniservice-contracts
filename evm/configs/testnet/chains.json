@@ -37,5 +37,13 @@
         "mos": "0x800030161FD2979f0B5c54286Bd77170D3c458Da",
         "feeService": "0x0000000000000000000000000000000000000000",
         "lightNode": "0x9E9Cd184f1ceC35b7836b26B3F884a7bA6e0aDA9"
+    },
+    {
+        "name": "TronTest",
+        "chainId": "3448148188",
+        "type": "evm",
+        "mos": "TQtKra7Y6vyR71ZRZjX7Ga2qS2EsVkBKwB",
+        "feeService": "0x0000000000000000000000000000000000000000",
+        "lightNode": "TFwPnWJ96aQp6LVUk21Y24Zpn7N39EmQrm"
     }
 ]

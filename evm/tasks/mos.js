@@ -1,5 +1,5 @@
 const { getChain, getOmniService, getChainList } = require("./utils/utils");
-const { isTron } = require("../utils/helper");
+const { isTron,toEvmAddress,fromEvmAddress } = require("../utils/helper");
 
 task("mos:deploy", "Deploy the upgradeable MOS contract and initialize it")
     .addOptionalParam("client", "lightNode contract address", "", types.string)
@@ -87,6 +87,7 @@ task("mos:setLightClient", "Initialize MOSRelay address for MOS")
 
         if (isTron(hre.network.config.chainId)) {
             let onchainAddr = await mos.lightNode().call();
+            clientAddr = await toEvmAddress(clientAddr,hre.network.name)
             if (onchainAddr === clientAddr) {
                 console.log(`client no update`);
                 return;
@@ -122,6 +123,7 @@ task("mos:setFeeService", "Set message fee service address ")
 
         if (isTron(hre.network.config.chainId)) {
             let onchainAddr = await mos.feeService().call();
+            feeService = await toEvmAddress(feeService,hre.network.name)
             if (onchainAddr === feeService) {
                 console.log(`feeService no update`);
                 return;
@@ -160,14 +162,14 @@ task("mos:grant", "grant role")
         let mos = await getOmniService(hre, "");
 
         if (isTron(hre.network.config.chainId)) {
-            let hasRole = await mos.hasRole(role, taskArgs.account).call();
+            let hasRole = await mos.hasRole(role, await toEvmAddress(taskArgs.account,hre.network.name)).call();
             if (hasRole) {
                 console.log(`[${taskArgs.account}] with role [${taskArgs.role}] no update`);
                 return;
             }
-            await mos.grantRole(role, taskArgs.account).send();
+            //await mos.grantRole(role, await toEvmAddress(taskArgs.account,hre.network.name)).send();
             console.log(
-                `set [${taskArgs.account}] hash role [${taskArgs.role}] [${await mos.hasRole(role, taskArgs.account).call()}] `,
+                `set [${taskArgs.account}] hash role [${taskArgs.role}] [${await mos.hasRole(role, await toEvmAddress(taskArgs.account,hre.network.name)).call()}] `,
             );
         } else {
             let hasRole = await mos.hasRole(role, taskArgs.account);
