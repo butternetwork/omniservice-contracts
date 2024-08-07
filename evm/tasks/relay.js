@@ -127,3 +127,4 @@ task("relay:list", "List mos info")
 
         await hre.run("fee:list", {});
     });
+

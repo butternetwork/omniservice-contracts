@@ -1,7 +1,7 @@
 let fs = require("fs");
 let path = require("path");
 
-const { isTron, getTronContract, isTestnet, isRelayChain } = require("../../utils/helper");
+const { isTron, getTronContract, isTestnet, isRelayChain,toEvmAddress,fromEvmAddress } = require("../../utils/helper");
 const net = require("node:net");
 
 async function getOmniService(hre, contractAddress) {
@@ -29,24 +29,29 @@ async function getOmniService(hre, contractAddress) {
 
 async function getFeeService(hre, contractAddress) {
     let addr = contractAddress;
+    let feeService;
     if (addr === "" || addr === "latest") {
         let mos = await getOmniService(hre, contractAddress);
-        let feeServiceAddr = await mos.feeService();
-        if (feeServiceAddr === ethers.constants.AddressZero) {
-            console.log("feeService address:", mos.address);
-            return mos;
+        if (isTron(hre.network.config.chainId)) {
+            let feeServiceAddr = await mos.feeService().call();
+            feeServiceAddr = await toEvmAddress(feeServiceAddr,hre.network.name)
+            if (feeServiceAddr === ethers.constants.AddressZero) {
+                console.log("mos=>feeService address:", mos.address);
+                return mos;
+            } else {
+                feeServiceAddr = await fromEvmAddress(feeServiceAddr,hre.network.name)
+                feeService = await getTronContract("FeeService", hre.artifacts, hre.network.name, feeServiceAddr);
+            }
         } else {
-            addr = feeServiceAddr;
+            let feeServiceAddr = await mos.feeService();
+            if (feeServiceAddr === ethers.constants.AddressZero) {
+                console.log("mos=>feeService address:", mos.address);
+                return mos;
+            } else {
+                feeService = await ethers.getContractAt("FeeService", feeServiceAddr);
+            }
         }
     }
-
-    let feeService;
-    if (isTron(hre.network.config.chainId)) {
-        feeService = await getTronContract("FeeService", hre.artifacts, hre.network.name, addr);
-    } else {
-        feeService = await ethers.getContractAt("FeeService", addr);
-    }
-
     console.log("feeService address:", feeService.address);
     return feeService;
 }

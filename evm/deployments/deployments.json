@@ -42,5 +42,9 @@
 	"11155111": {
 		"chainName": "Sepolia",
 		"mosAddress": "0x800030161FD2979f0B5c54286Bd77170D3c458Da"
+	},
+	"3448148188": {
+		"chainName": "TronTest",
+		"mosAddress": "TQtKra7Y6vyR71ZRZjX7Ga2qS2EsVkBKwB"
 	}
 }
