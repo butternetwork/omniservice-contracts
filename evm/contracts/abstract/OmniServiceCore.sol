@@ -332,14 +332,16 @@ abstract contract OmniServiceCore is
         uint256 baseGas;
         uint256 chainPrice;
         if (address(feeService) == address(0)) {
-            (baseGas, chainPrice, receiverAddress) = this.getFeeInfo(_toChain, _feeToken);
+            (amount, receiverAddress) = this.getServiceMessageFee(_toChain, _feeToken,_gasLimit);
+            if(selfChainId == 728126428 || selfChainId == 3448148188){
+                if(_feeToken == address(0)){
+                    amount = amount / 10**12;
+                }
+            }
         } else {
-            (baseGas, chainPrice, receiverAddress) = feeService.getFeeInfo(_toChain, _feeToken);
+            (amount, receiverAddress) = feeService.getServiceMessageFee(_toChain, _feeToken,_gasLimit);
+            require(amount > 0, "MOSV3: not support target chain");
         }
-
-        require(baseGas > 0, "MOSV3: not support target chain");
-
-        amount = (baseGas.add(_gasLimit)).mul(chainPrice);
     }
 
     /** UUPS *********************************************************/

@@ -113,6 +113,7 @@ task("fee:setTargetPrice", "set chain message fee")
     .addParam("price", "to chain id", "latest", types.string)
     .addOptionalParam("token", "fee token", "0x0000000000000000000000000000000000000000", types.string)
     .addOptionalParam("service", "the fee service address", "", types.string)
+    .addOptionalParam("decimals", "the fee service address", "18", types.string)
     .setAction(async (taskArgs, hre) => {
         const accounts = await ethers.getSigners();
         const deployer = accounts[0];
@@ -131,6 +132,29 @@ task("fee:setTargetPrice", "set chain message fee")
 
         let updateChainList = [];
         let updatePriceList = [];
+
+        if(taskArgs.service !== "" && taskArgs.decimals !== "18"){
+            let tokenDecimals;
+            if (isTron(hre.network.config.chainId)){
+                tokenDecimals = await feeService.tokenDecimals(token).call();
+                tokenDecimals = tokenDecimals.toString();
+                if (tokenDecimals === taskArgs.decimals){
+                    console.log(`FeeService ${token} decimal is ${taskArgs.decimals} no update`);
+                }else{
+                    await feeService.setTokenDecimals(token, taskArgs.decimals).send();
+                    console.log(`FeeService ${token} decimal update is ${await feeService.tokenDecimals(token).call()}`);
+                }
+            }else{
+                tokenDecimals = await feeService.tokenDecimals(token);
+                tokenDecimals = tokenDecimals.toString();
+                if (tokenDecimals === taskArgs.decimals){
+                    console.log(`FeeService ${token} decimal is ${taskArgs.decimals} no update`);
+                }else{
+                    await feeService.setTokenDecimals(token, taskArgs.decimals);
+                    console.log(`FeeService ${token} decimal update is ${await feeService.tokenDecimals(token)}`);
+                }
+            }
+        }
 
         if (isTron(hre.network.config.chainId)) {
             for (let i = 0; i < chainList.length; i++) {
