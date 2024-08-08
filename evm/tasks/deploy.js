@@ -91,7 +91,7 @@ task("deploy:upgrade", "upgrade mos evm contract in proxy")
         }
 
         if (isTron(hre.network.config.chainId)) {
-            await proxy.upgradeTo(impl).send();
+            await proxy.upgradeTo(implAddr).send();
             console.log("impl address:", await proxy.getImplementation().call());
         } else {
             await (await proxy.upgradeTo(implAddr)).wait();
