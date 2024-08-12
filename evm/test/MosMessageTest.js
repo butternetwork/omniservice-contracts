@@ -106,12 +106,15 @@ describe("OmniServiceV3 start test", () => {
 
             let relayHashData = await ethers.provider.getTransactionReceipt(relayData.hash);
 
+            //console.log(relayHashData.logs)
             let decodeData = await ethers.utils.defaultAbiCoder.decode(
                 ["bytes32", "bytes", "bytes", "bool", "bytes"],
-                relayHashData.logs[0].data,
+                relayHashData.logs[1].data,
             );
 
             expect(decodeData[3]).to.equal(false);
+
+            expect(await ethers.utils.toUtf8String(decodeData[4])).to.equal("InvalidCaller")
 
             console.log(
                 await os.storedMessageList("0x63bf27b593f5ecbfe3212c102d6dc04aabcf5e27150edeb6a60003feb71c3d38"),

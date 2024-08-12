@@ -125,7 +125,7 @@ describe("ServiceRelayV3 start test", () => {
 
             let decodeData = await ethers.utils.defaultAbiCoder.decode(
                 ["bytes32", "bytes", "bytes"],
-                relayHashData.logs[0].data,
+                relayHashData.logs[1].data,
             );
 
             let decodeMessage = await echo.getMessageDatas(decodeData[2]);
@@ -147,7 +147,7 @@ describe("ServiceRelayV3 start test", () => {
 
             let callDataReceipt = await ethers.utils.defaultAbiCoder.decode(
                 ["bytes32", "bytes", "bytes"],
-                callDataHash.logs[0].data,
+                callDataHash.logs[1].data,
             );
 
             let newDecodeMessage = await echo.getMessageDatas(callDataReceipt[2]);

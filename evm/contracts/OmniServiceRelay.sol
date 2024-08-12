@@ -124,10 +124,12 @@ contract OmniServiceRelay is OmniServiceCore {
             _notifyMessageOut(_outEvent, _outEvent.messageData);
             return;
         }
+        uint256 executingGas = gasleft();
         (bool success, bytes memory returnData) = _messageExecute(_outEvent, _msgData, true);
+        emit GasInfo(_outEvent.orderId,executingGas,gasleft());
         if (!success) {
             if (_retry) {
-                revert(string(returnData));
+                revert ExecuteReturn(returnData);
             } else {
                 _storeMessageData(_outEvent, returnData);
             }

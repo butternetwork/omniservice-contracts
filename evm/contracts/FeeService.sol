@@ -41,7 +41,7 @@ contract FeeService is Ownable2StepUpgradeable, IFeeService {
     }
 
     function setTokenDecimals(address _token,uint256 _decimal) external onlyOwner{
-        tokenDecimals[_token] = _decimals;
+        tokenDecimals[_token] = _decimal;
         emit SetTokenDecimals(_token,_decimal);
     }
 
