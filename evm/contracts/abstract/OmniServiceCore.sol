@@ -228,6 +228,7 @@ abstract contract OmniServiceCore is
         if (!AddressUpgradeable.isContract(target)) {
             return (false, bytes("NotContract"));
         }
+        uint256 executingGas = gasleft();
         if (_msgData.msgType == MessageType.CALLDATA) {
             if (!callerList[target][_outEvent.fromChain][_outEvent.fromAddress]) {
                 return (false, bytes("InvalidCaller"));
@@ -260,6 +261,7 @@ abstract contract OmniServiceCore is
         } else {
             return (false, bytes("InvalidMessageType"));
         }
+        emit GasInfo(_outEvent.orderId,executingGas,gasleft());
     }
 
     function _messageIn(
