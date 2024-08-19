@@ -16,6 +16,8 @@ contract Echo is Ownable, IMapoExecutor {
 
     mapping(address => bool) public WhiteList;
 
+    error on_permission();
+
     function setList(string memory _key, string memory _val) external returns (bool) {
         require(WhiteList[msg.sender], " have no right ");
         EchoList[_key] = _val;
@@ -113,7 +115,7 @@ contract Echo is Ownable, IMapoExecutor {
         bytes32,
         bytes calldata _message
     ) external override returns (bytes memory newData) {
-        require(IMOSV3(omniService).getExecutePermission(address(this), _fromChain, _fromAddress), "no permission");
+        if (!IMOSV3(omniService).getExecutePermission(address(this), _fromChain, _fromAddress)) revert on_permission();
 
         (string memory key, string memory value) = abi.decode(_message, (string, string));
 

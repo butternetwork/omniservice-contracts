@@ -4,7 +4,6 @@ pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
@@ -22,7 +21,6 @@ abstract contract OmniServiceCore is
     UUPSUpgradeable,
     AccessControlEnumerableUpgradeable
 {
-    using SafeMathUpgradeable for uint;
     using AddressUpgradeable for address;
 
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
@@ -54,6 +52,10 @@ abstract contract OmniServiceCore is
     event SetFeeService(address indexed feeServiceAddress);
 
     event AddRemoteCaller(address indexed target, uint256 remoteChainId, bytes remoteAddress, bool tag);
+
+    event GasInfo(bytes32 indexed orderId,uint256 indexed executingGas,uint256 indexed executedGas);
+
+    error ExecuteReturn(bytes errorInfo);
 
     function initialize(address _owner) public virtual initializer checkAddress(_owner) {
         // _changeAdmin(_owner);
@@ -190,6 +192,8 @@ abstract contract OmniServiceCore is
         //require(msgData.gasLimit <= gasLimitMax, "MOSV3: gas too high");
         require(msgData.value == 0, "MOSV3: not support msg value");
 
+        require(msgData.msgType == MessageType.CALLDATA || msgData.msgType == MessageType.MESSAGE, "MOSV3: not support message type" );
+
         // TODO: check payload length
         // TODO: check target address
         (uint256 amount, address receiverFeeAddress) = _getMessageFee(_toChain, _feeToken, msgData.gasLimit);
@@ -258,14 +262,38 @@ abstract contract OmniServiceCore is
         }
     }
 
+    function _retryExecute(
+        IEvent.dataOutEvent memory _outEvent,
+        MessageData memory _msgData
+    ) internal returns(bytes memory returnData){
+        address target = Utils.fromBytes(_msgData.target);
+        require(AddressUpgradeable.isContract(target),"NotContract");
+        if (_msgData.msgType == MessageType.CALLDATA) {
+            require(callerList[target][_outEvent.fromChain][_outEvent.fromAddress],"InvalidCaller");
+            bool success;
+            (success, returnData) = target.call(_msgData.payload);
+            require(success,"MOSV3: retry call failed");
+        } else if (_msgData.msgType == MessageType.MESSAGE) {
+            returnData = IMapoExecutor(target).mapoExecute(
+                _outEvent.fromChain,
+                _outEvent.toChain,
+                _outEvent.fromAddress,
+                _outEvent.orderId,
+                _msgData.payload
+            );
+        } else {
+            require(false, "InvalidMessageType");
+        }
+    }
+
     function _messageIn(
         IEvent.dataOutEvent memory _outEvent,
         MessageData memory _msgData,
         bool _gasleft,
         bool _revert
     ) internal {
-        (bool success, bytes memory returnData) = _messageExecute(_outEvent, _msgData, _gasleft);
-        if (success) {
+        if(_revert){
+            _retryExecute(_outEvent, _msgData);
             emit MessageIn(
                 _outEvent.fromChain,
                 _outEvent.toChain,
@@ -276,8 +304,19 @@ abstract contract OmniServiceCore is
                 bytes("")
             );
         } else {
-            if (_revert) {
-                revert(string(returnData));
+            uint256 executingGas = gasleft();
+            (bool success, bytes memory returnData) = _messageExecute(_outEvent, _msgData, _gasleft);
+            emit GasInfo(_outEvent.orderId,executingGas,gasleft());
+            if (success) {
+                emit MessageIn(
+                    _outEvent.fromChain,
+                    _outEvent.toChain,
+                    _outEvent.orderId,
+                    _outEvent.fromAddress,
+                    bytes(""),
+                    true,
+                    bytes("")
+                );
             } else {
                 _storeMessageData(_outEvent, returnData);
             }
@@ -285,9 +324,16 @@ abstract contract OmniServiceCore is
     }
 
     function _storeMessageData(IEvent.dataOutEvent memory _outEvent, bytes memory _reason) internal {
-        storedMessageList[_outEvent.orderId] = keccak256(
-            abi.encodePacked(_outEvent.fromChain, _outEvent.fromAddress, _outEvent.messageData)
-        );
+        if(_outEvent.toChain == selfChainId){
+            storedMessageList[_outEvent.orderId] = keccak256(
+                abi.encodePacked(_outEvent.fromChain, _outEvent.fromAddress, _outEvent.messageData)
+            );
+        }else{
+            storedMessageList[_outEvent.orderId] = keccak256(
+                abi.encodePacked(_outEvent.fromChain, _outEvent.toChain,_outEvent.fromAddress, _outEvent.messageData)
+            );
+        }
+
         emit MessageIn(
             _outEvent.fromChain,
             _outEvent.toChain,
@@ -302,17 +348,26 @@ abstract contract OmniServiceCore is
     function _getStoredMessage(
         uint256 _fromChain,
         bytes32 _orderId,
+        uint256 _toChain,
         bytes calldata _fromAddress,
         bytes calldata _messageData
     ) internal returns (IEvent.dataOutEvent memory outEvent, MessageData memory msgData) {
-        require(
-            keccak256(abi.encodePacked(_fromChain, _fromAddress, _messageData)) == storedMessageList[_orderId],
-            "MOSV3: invalid message data"
-        );
+        if(_toChain == selfChainId){
+            require(
+                keccak256(abi.encodePacked(_fromChain, _fromAddress, _messageData)) == storedMessageList[_orderId],
+                "MOSV3: invalid message data"
+            );
+        } else {
+            require(
+                keccak256(abi.encodePacked(_fromChain, _toChain, _fromAddress, _messageData)) == storedMessageList[_orderId],
+                "MOSV3: relay invalid message data"
+            );
+        }
+
         outEvent = IEvent.dataOutEvent({
             orderId: _orderId,
             fromChain: _fromChain,
-            toChain: selfChainId,
+            toChain: _toChain,
             fromAddress: _fromAddress,
             messageData: _messageData
         });
@@ -329,8 +384,6 @@ abstract contract OmniServiceCore is
         address _feeToken,
         uint256 _gasLimit
     ) internal view returns (uint256 amount, address receiverAddress) {
-        uint256 baseGas;
-        uint256 chainPrice;
         if (address(feeService) == address(0)) {
             (amount, receiverAddress) = this.getServiceMessageFee(_toChain, _feeToken,_gasLimit);
             if(selfChainId == 728126428 || selfChainId == 3448148188){

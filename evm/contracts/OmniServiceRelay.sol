@@ -61,12 +61,14 @@ contract OmniServiceRelay is OmniServiceCore {
     function retryMessageIn(
         uint256 _fromChain,
         bytes32 _orderId,
+        uint256 _toChain,
         bytes calldata _fromAddress,
         bytes calldata _messageData
     ) external nonReentrant whenNotPaused {
         (IEvent.dataOutEvent memory outEvent, MessageData memory msgData) = _getStoredMessage(
             _fromChain,
             _orderId,
+            _toChain,
             _fromAddress,
             _messageData
         );
@@ -124,14 +126,18 @@ contract OmniServiceRelay is OmniServiceCore {
             _notifyMessageOut(_outEvent, _outEvent.messageData);
             return;
         }
-        (bool success, bytes memory returnData) = _messageExecute(_outEvent, _msgData, true);
-        if (!success) {
-            if (_retry) {
-                revert(string(returnData));
-            } else {
+        bytes memory returnData;
+        if(_retry){
+            returnData = _retryExecute(_outEvent, _msgData);
+        } else {
+            uint256 executingGas = gasleft();
+            bool success;
+            (success, returnData) = _messageExecute(_outEvent, _msgData, true);
+            emit GasInfo(_outEvent.orderId,executingGas,gasleft());
+            if (!success) {
                 _storeMessageData(_outEvent, returnData);
+                return;
             }
-            return;
         }
         MessageData memory msgData = abi.decode(returnData, (MessageData));
         if (msgData.gasLimit != _msgData.gasLimit || msgData.value != 0) {

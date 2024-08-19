@@ -98,6 +98,7 @@ contract OmniService is OmniServiceCore {
         (IEvent.dataOutEvent memory outEvent, MessageData memory msgData) = _getStoredMessage(
             _fromChain,
             _orderId,
+            selfChainId,
             _fromAddress,
             _messageData
         );
@@ -107,12 +108,14 @@ contract OmniService is OmniServiceCore {
     function retryMessageIn(
         uint256 _fromChain,
         bytes32 _orderId,
+        uint256 _toChain,
         bytes calldata _fromAddress,
         bytes calldata _messageData
     ) external nonReentrant whenNotPaused {
         (IEvent.dataOutEvent memory outEvent, MessageData memory msgData) = _getStoredMessage(
             _fromChain,
             _orderId,
+            _toChain,
             _fromAddress,
             _messageData
         );

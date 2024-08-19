@@ -106,28 +106,35 @@ describe("OmniServiceV3 start test", () => {
 
             let relayHashData = await ethers.provider.getTransactionReceipt(relayData.hash);
 
+            //console.log(relayHashData.logs)
             let decodeData = await ethers.utils.defaultAbiCoder.decode(
                 ["bytes32", "bytes", "bytes", "bool", "bytes"],
-                relayHashData.logs[0].data,
+                relayHashData.logs[1].data,
             );
 
             expect(decodeData[3]).to.equal(false);
+
+            expect(await ethers.utils.toUtf8String(decodeData[4])).to.equal("InvalidCaller")
 
             console.log(
                 await os.storedMessageList("0x63bf27b593f5ecbfe3212c102d6dc04aabcf5e27150edeb6a60003feb71c3d38"),
             );
 
             expect(
-                await os.storedMessageList("0x63bf27b593f5ecbfe3212c102d6dc04aabcf5e27150edeb6a60003feb71c3d38"),
+                 os.storedMessageList("0x63bf27b593f5ecbfe3212c102d6dc04aabcf5e27150edeb6a60003feb71c3d38"),
             ).to.not.equal("");
-
-            await echo.addCorrespondence("5", "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9", true);
 
             let messageData =
                 "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000007a12000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000014cf7ed3acca5a467e9e704c703e8d87f634fb0fc900000000000000000000000000000000000000000000000000000000000000000000000000000000000000c4dd1d382400000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000000568656c6c6f000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b68656c6c6f20776f726c6400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
 
+            await expect(
+                os.retryMessageIn(5, decodeData[0], 212, decodeData[1],  messageData, { gasLimit: 10000000 })
+            ).to.be.revertedWith("InvalidCaller")
+
+            await echo.addCorrespondence("5", "0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9", true);
+
             await (
-                await os.retryMessageIn(5, decodeData[0], decodeData[1], messageData, { gasLimit: 10000000 })
+                await os.retryMessageIn(5, decodeData[0], 212, decodeData[1], messageData, { gasLimit: 10000000 })
             ).wait();
             expect(await echo.EchoList("hello")).to.equal("hello world");
         });

@@ -114,6 +114,9 @@ describe("ServiceRelayV3 start test", () => {
         });
 
         it("test relayOperation is true", async function () {
+
+            await echo.addCorrespondence("5", "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266", false);
+
             let receiptRelayProof =
                 "0xf90340f9033d945fc8d32690cc91d4c39d9d3abcbd16989f875707f863a066e2de40f0c0fe334b556647c99aae36be85f9975cda26f72954d14f728e7dc9a00000000000000000000000000000000000000000000000000000000000000005a00000000000000000000000000000000000000000000000000000000000000061b902c0130be85df88b4c41c0211b6aa0f06f19a0cd9150d46ffad5f90932c7bb3e1ac2000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000014f39fd6e51aad88f6f4ce6ab8827279cfffb92266000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000004c4b4000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000014" +
                 echo.address.substring(2) +
@@ -124,6 +127,21 @@ describe("ServiceRelayV3 start test", () => {
             let relayHashData = await ethers.provider.getTransactionReceipt(relayData.hash);
 
             let decodeData = await ethers.utils.defaultAbiCoder.decode(
+                ["bytes32", "bytes", "bytes", "bool", "bytes"],
+                relayHashData.logs[1].data,
+            );
+
+            expect(decodeData[3]).to.equal(false);
+
+            await expect(relay.retryMessageIn(5, decodeData[0], 97, decodeData[1], decodeData[2])).to.be.revertedWith("on_permission");
+
+            await echo.addCorrespondence("5", "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266", true);
+
+            relayData = await relay.retryMessageIn(5, decodeData[0], 97, decodeData[1], decodeData[2]);
+
+             relayHashData = await ethers.provider.getTransactionReceipt(relayData.hash);
+
+            decodeData = await ethers.utils.defaultAbiCoder.decode(
                 ["bytes32", "bytes", "bytes"],
                 relayHashData.logs[0].data,
             );
@@ -147,7 +165,7 @@ describe("ServiceRelayV3 start test", () => {
 
             let callDataReceipt = await ethers.utils.defaultAbiCoder.decode(
                 ["bytes32", "bytes", "bytes"],
-                callDataHash.logs[0].data,
+                callDataHash.logs[1].data,
             );
 
             let newDecodeMessage = await echo.getMessageDatas(callDataReceipt[2]);
