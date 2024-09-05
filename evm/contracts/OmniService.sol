@@ -55,7 +55,7 @@ contract OmniService is OmniServiceCore {
         _transferIn(outEvent, false);
     }
 
-    function transferInWithOrderId(
+    function transferIn(
         uint256 _chainId,
         uint256 _logIndex,
         bytes32 _orderId,
@@ -137,8 +137,8 @@ contract OmniService is OmniServiceCore {
         LogDecoder.txLog memory log = LogDecoder.decodeTxLog(logArray, _logIndex);
         require(relayContract == log.addr, "MOSV3: Invalid relay");
 
-        bytes32 topic = abi.decode(log.topics[0], (bytes32));
-        require(topic == EvmDecoder.MAP_MESSAGE_TOPIC, "MOSV3: Invalid topic");
+        // bytes32 topic = abi.decode(log.topics[0], (bytes32));
+        require(log.topics[0] == EvmDecoder.MAP_MESSAGE_TOPIC, "MOSV3: Invalid topic");
 
         (, outEvent) = EvmDecoder.decodeDataLog(log);
     }

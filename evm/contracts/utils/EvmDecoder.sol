@@ -17,8 +17,11 @@ library EvmDecoder {
         LogDecoder.txLog memory log
     ) internal pure returns (bytes memory executorId, IEvent.dataOutEvent memory outEvent) {
         executorId = Utils.toBytes(log.addr);
-        outEvent.fromChain = abi.decode(log.topics[1], (uint256));
-        outEvent.toChain = abi.decode(log.topics[2], (uint256));
+        //outEvent.fromChain = abi.decode(log.topics[1], (uint256));
+        //outEvent.toChain = abi.decode(log.topics[2], (uint256));
+
+        outEvent.fromChain = uint256(log.topics[1]);
+        outEvent.toChain = uint256(log.topics[2]);
 
         (outEvent.orderId, outEvent.fromAddress, outEvent.messageData) = abi.decode(log.data, (bytes32, bytes, bytes));
     }

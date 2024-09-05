@@ -16,6 +16,13 @@ abstract contract FeeManager is IFeeService {
         uint256 _chainId,
         address _feeToken
     ) external view override returns (uint256 _base, uint256 _gasPrice, address _receiverAddress) {
+        return _getFeeInfo(_chainId, _feeToken);
+    }
+
+    function _getFeeInfo(
+        uint256 _chainId,
+        address _feeToken
+    ) internal view returns (uint256 _base, uint256 _gasPrice, address _receiverAddress) {
         return (baseGas[_chainId], chainGasPrice[_chainId][_feeToken], feeReceiver);
     }
 
@@ -23,7 +30,15 @@ abstract contract FeeManager is IFeeService {
         uint256 _toChain,
         address _feeToken,
         uint256 _gasLimit
-    ) external view override returns (uint256 amount, address receiverAddress){
+    ) external view override returns (uint256 amount, address receiverAddress) {
+        return _getServiceMessageFee(_toChain, _feeToken, _gasLimit);
+    }
+
+    function _getServiceMessageFee(
+        uint256 _toChain,
+        address _feeToken,
+        uint256 _gasLimit
+    ) internal view returns (uint256 amount, address receiverAddress) {
         require(baseGas[_toChain] > 0, "MOSV3: not support target chain");
         receiverAddress = feeReceiver;
         amount = (baseGas[_toChain] + _gasLimit) * chainGasPrice[_toChain][_feeToken];

@@ -53,7 +53,7 @@ abstract contract OmniServiceCore is
 
     event AddRemoteCaller(address indexed target, uint256 remoteChainId, bytes remoteAddress, bool tag);
 
-    event GasInfo(bytes32 indexed orderId,uint256 indexed executingGas,uint256 indexed executedGas);
+    event GasInfo(bytes32 orderId, uint256 executingGas, uint256 executedGas);
 
     error ExecuteReturn(bytes errorInfo);
 
@@ -192,7 +192,10 @@ abstract contract OmniServiceCore is
         //require(msgData.gasLimit <= gasLimitMax, "MOSV3: gas too high");
         require(msgData.value == 0, "MOSV3: not support msg value");
 
-        require(msgData.msgType == MessageType.CALLDATA || msgData.msgType == MessageType.MESSAGE, "MOSV3: not support message type" );
+        require(
+            (msgData.msgType == MessageType.CALLDATA) || (msgData.msgType == MessageType.MESSAGE),
+            "MOSV3: unsupported message type"
+        );
 
         // TODO: check payload length
         // TODO: check target address
@@ -265,14 +268,14 @@ abstract contract OmniServiceCore is
     function _retryExecute(
         IEvent.dataOutEvent memory _outEvent,
         MessageData memory _msgData
-    ) internal returns(bytes memory returnData){
+    ) internal returns (bytes memory returnData) {
         address target = Utils.fromBytes(_msgData.target);
-        require(AddressUpgradeable.isContract(target),"NotContract");
+        require(AddressUpgradeable.isContract(target), "NotContract");
         if (_msgData.msgType == MessageType.CALLDATA) {
-            require(callerList[target][_outEvent.fromChain][_outEvent.fromAddress],"InvalidCaller");
+            require(callerList[target][_outEvent.fromChain][_outEvent.fromAddress], "InvalidCaller");
             bool success;
             (success, returnData) = target.call(_msgData.payload);
-            require(success,"MOSV3: retry call failed");
+            require(success, "MOSV3: retry call failed");
         } else if (_msgData.msgType == MessageType.MESSAGE) {
             returnData = IMapoExecutor(target).mapoExecute(
                 _outEvent.fromChain,
@@ -292,7 +295,7 @@ abstract contract OmniServiceCore is
         bool _gasleft,
         bool _revert
     ) internal {
-        if(_revert){
+        if (_revert) {
             _retryExecute(_outEvent, _msgData);
             emit MessageIn(
                 _outEvent.fromChain,
@@ -306,7 +309,7 @@ abstract contract OmniServiceCore is
         } else {
             uint256 executingGas = gasleft();
             (bool success, bytes memory returnData) = _messageExecute(_outEvent, _msgData, _gasleft);
-            emit GasInfo(_outEvent.orderId,executingGas,gasleft());
+            emit GasInfo(_outEvent.orderId, executingGas, gasleft());
             if (success) {
                 emit MessageIn(
                     _outEvent.fromChain,
@@ -324,13 +327,13 @@ abstract contract OmniServiceCore is
     }
 
     function _storeMessageData(IEvent.dataOutEvent memory _outEvent, bytes memory _reason) internal {
-        if(_outEvent.toChain == selfChainId){
+        if (_outEvent.toChain == selfChainId) {
             storedMessageList[_outEvent.orderId] = keccak256(
                 abi.encodePacked(_outEvent.fromChain, _outEvent.fromAddress, _outEvent.messageData)
             );
-        }else{
+        } else {
             storedMessageList[_outEvent.orderId] = keccak256(
-                abi.encodePacked(_outEvent.fromChain, _outEvent.toChain,_outEvent.fromAddress, _outEvent.messageData)
+                abi.encodePacked(_outEvent.fromChain, _outEvent.toChain, _outEvent.fromAddress, _outEvent.messageData)
             );
         }
 
@@ -352,14 +355,15 @@ abstract contract OmniServiceCore is
         bytes calldata _fromAddress,
         bytes calldata _messageData
     ) internal returns (IEvent.dataOutEvent memory outEvent, MessageData memory msgData) {
-        if(_toChain == selfChainId){
+        if (_toChain == selfChainId) {
             require(
                 keccak256(abi.encodePacked(_fromChain, _fromAddress, _messageData)) == storedMessageList[_orderId],
                 "MOSV3: invalid message data"
             );
         } else {
             require(
-                keccak256(abi.encodePacked(_fromChain, _toChain, _fromAddress, _messageData)) == storedMessageList[_orderId],
+                keccak256(abi.encodePacked(_fromChain, _toChain, _fromAddress, _messageData)) ==
+                    storedMessageList[_orderId],
                 "MOSV3: relay invalid message data"
             );
         }
@@ -385,14 +389,14 @@ abstract contract OmniServiceCore is
         uint256 _gasLimit
     ) internal view returns (uint256 amount, address receiverAddress) {
         if (address(feeService) == address(0)) {
-            (amount, receiverAddress) = this.getServiceMessageFee(_toChain, _feeToken,_gasLimit);
-            if(selfChainId == 728126428 || selfChainId == 3448148188){
-                if(_feeToken == address(0)){
-                    amount = amount / 10**12;
+            (amount, receiverAddress) = _getServiceMessageFee(_toChain, _feeToken, _gasLimit);
+            if (selfChainId == 728126428 || selfChainId == 3448148188) {
+                if (_feeToken == address(0)) {
+                    amount = amount / 10 ** 12;
                 }
             }
         } else {
-            (amount, receiverAddress) = feeService.getServiceMessageFee(_toChain, _feeToken,_gasLimit);
+            (amount, receiverAddress) = feeService.getServiceMessageFee(_toChain, _feeToken, _gasLimit);
             require(amount > 0, "MOSV3: not support target chain");
         }
     }

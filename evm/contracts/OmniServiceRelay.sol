@@ -96,8 +96,8 @@ contract OmniServiceRelay is OmniServiceCore {
             // TODO support near
         } else if (chainTypes[_chainId] == ChainType.EVM) {
             LogDecoder.txLog memory log = LogDecoder.decodeTxLog(logArray, _logIndex);
-            bytes32 topic = abi.decode(log.topics[0], (bytes32));
-            require(topic == EvmDecoder.MAP_MESSAGE_TOPIC, "MOSV3: Invalid topic");
+            // bytes32 topic = abi.decode(log.topics[0], (bytes32));
+            require(log.topics[0] == EvmDecoder.MAP_MESSAGE_TOPIC, "MOSV3: Invalid topic");
             bytes memory mosContract = Utils.toBytes(log.addr);
             require(Utils.checkBytes(mosContract, mosContracts[_chainId]), "MOSV3: Invalid mos contract");
 
@@ -127,14 +127,15 @@ contract OmniServiceRelay is OmniServiceCore {
             return;
         }
         bytes memory returnData;
-        if(_retry){
+        if (_retry) {
             returnData = _retryExecute(_outEvent, _msgData);
         } else {
             uint256 executingGas = gasleft();
             bool success;
             (success, returnData) = _messageExecute(_outEvent, _msgData, true);
-            emit GasInfo(_outEvent.orderId,executingGas,gasleft());
+
             if (!success) {
+                emit GasInfo(_outEvent.orderId, executingGas, gasleft());
                 _storeMessageData(_outEvent, returnData);
                 return;
             }
