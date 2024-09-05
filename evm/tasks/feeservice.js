@@ -303,12 +303,13 @@ task("fee:updateFee", "List mos info")
 
 task("fee:list", "List mos info")
     .addOptionalParam("service", "the fee service address", "", types.string)
+    .addOptionalParam("limit", "the gas limit", 1000000, types.int)
     .setAction(async (taskArgs, hre) => {
         let mos = await getOmniService(hre, "");
         let feeService = await getFeeService(hre, taskArgs.service);
 
         // console.log("owner:\t", await feeService.owner());
-        console.log("feeService receiver:\t", await feeService.feeReceiver());
+        console.log("feeService receiver:", await feeService.feeReceiver());
 
         console.log("fees:");
         let chains = await getChainList(hre.network.name);
@@ -318,11 +319,11 @@ task("fee:list", "List mos info")
             if (!baseFee.eq(0)) {
                 let price = await feeService.chainGasPrice(chainId, ethers.constants.AddressZero);
 
-                let fee = await mos.getMessageFee(chainId, ethers.constants.AddressZero, 1000000);
+                let fee = await mos.getMessageFee(chainId, ethers.constants.AddressZero, taskArgs.limit);
 
                 let nativeFee = ethers.utils.formatUnits(fee[0], "ether");
                 console.log(
-                    `${chains[i].name} (${chainId}) \t base fee [${baseFee}] gas price [${price}]\t fee [${nativeFee}] when limit [1,000,000]`,
+                    `${chains[i].name} (${chainId}) \t base fee [${baseFee}] gas price [${price}]\t fee [${nativeFee}] when limit [${taskArgs.limit}]`,
                 );
             }
         }

@@ -111,13 +111,13 @@ async function createTron(contractName, args, artifacts, network) {
     return "0x" + contract_instance.address.substring(2);
 }
 
-async function fromEvmAddress(hex, network) {
-    let tronWeb = await getTronWeb(network);
+async function fromEvmAddress(hex) {
+    let tronWeb = await getTronWeb("TronTest");
     return tronWeb.address.fromHex(hex);
 }
 
-async function toEvmAddress(addr, network) {
-    let tronWeb = await getTronWeb(network);
+async function toEvmAddress(addr) {
+    let tronWeb = await getTronWeb("TronTest");
     return tronWeb.address.toHex(addr).replace(/^(41)/, "0x");
 }
 
@@ -179,18 +179,18 @@ async function getTronWeb(network) {
                 "https://api.trongrid.io/",
                 "https://api.trongrid.io/",
                 "https://api.trongrid.io/",
-                process.env.TRON_PRIVATE_KEY,
+                process.env.PRIVATE_KEY,
             );
         } else {
             return new TronWeb(
                 "https://api.nileex.io/",
                 "https://api.nileex.io/",
                 "https://api.nileex.io/",
-                process.env.TRON_PRIVATE_KEY,
+                process.env.TESTNET_PRIVATE_KEY,
             );
         }
     } else {
-        throw "unsupport network";
+        throw "unsupported network";
     }
 }
 

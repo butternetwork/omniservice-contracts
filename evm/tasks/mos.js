@@ -71,7 +71,7 @@ task("mos:setRelay", "Initialize MOSRelay address for MOS")
         }
     });
 
-task("mos:setLightClient", "Initialize MOSRelay address for MOS")
+task("mos:setClient", "Initialize MOSRelay address for MOS")
     .addOptionalParam("client", "light client address", "", types.string)
     .setAction(async (taskArgs, hre) => {
         const accounts = await ethers.getSigners();
@@ -87,7 +87,7 @@ task("mos:setLightClient", "Initialize MOSRelay address for MOS")
 
         if (isTron(hre.network.config.chainId)) {
             let onchainAddr = await mos.lightNode().call();
-            clientAddr = await toEvmAddress(clientAddr,hre.network.name)
+            clientAddr = await toEvmAddress(clientAddr, hre.network.name)
             if (onchainAddr === clientAddr) {
                 console.log(`client no update`);
                 return;
@@ -138,6 +138,38 @@ task("mos:setFeeService", "Set message fee service address ")
             }
             await (await mos.setFeeService(feeService)).wait();
             console.log(`set FeeService ${await mos.feeService()} successfully `);
+        }
+    });
+
+task("mos:retry", "Initialize MOSRelay address for MOS")
+    .addParam("chain", "relay chain id")
+    .addParam("order", "relay chain id")
+    .addParam("from", "relay chain id")
+    .addParam("data", "relay chain id")
+    .addOptionalParam("gas", "grant or revoke", 0, types.int)
+    .setAction(async (taskArgs, hre) => {
+        const accounts = await ethers.getSigners();
+        const deployer = accounts[0];
+        console.log("deployer address:", deployer.address);
+
+        let mos = await getOmniService(hre, "");
+        let clientAddr = taskArgs.client;
+        if (taskArgs.client === "") {
+            let chain = await getChain(hre.network.name, hre.network.config.chainId);
+            clientAddr = chain.lightNode;
+        }
+
+        if (isTron(hre.network.config.chainId)) {
+            await mos.setLightClient(clientAddr).send();
+            console.log(`retry ${taskArgs.order} successfully `);
+        } else {
+            if (taskArgs.gas === 0) {
+                await (await mos.retryMessageIn(taskArgs.chain, taskArgs.order, taskArgs.from, taskArgs.data)).wait();
+            } else {
+                await (await mos.retryMessageIn(taskArgs.chain, taskArgs.order, taskArgs.from, taskArgs.data, {gasLimit: taskArgs.gas})).wait();
+            }
+
+            console.log(`retry ${taskArgs.order} successfully `);
         }
     });
 

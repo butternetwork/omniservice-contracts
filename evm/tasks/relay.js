@@ -1,4 +1,5 @@
 const { getOmniService, getChainList, getChain } = require("./utils/utils");
+const {isTron, toEvmAddress} = require("../utils/helper");
 
 task("relay:deploy", "Deploy the upgradeable MOS contract and initialize it")
     .addOptionalParam("client", "lightNode contract address", "", types.string)
@@ -57,6 +58,10 @@ task("relay:registerChain", "Register altchain mos to relayOperation chain")
         let mosAddr = taskArgs.address;
         if (taskArgs.address === "latest") {
             mosAddr = chain.mos;
+        }
+
+        if (isTron(chain.name)) {
+            mosAddr = await toEvmAddress(mosAddr);
         }
 
         let onchainMos = await relay.mosContracts(chain.chainId);

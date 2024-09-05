@@ -2,42 +2,42 @@
     "Mapo": {
         "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
         "baseGas": 1000000,
-        "nativePrice": "0.01",
+        "nativePrice": "0.008",
         "gasPrice": "700",
         "nontarget": []
     },
     "Eth": {
         "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
         "baseGas": 600000,
-        "nativePrice": "3500",
+        "nativePrice": "2520",
         "gasPrice": "10",
         "nontarget": []
     },
     "Bsc": {
         "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
         "baseGas": 1200000,
-        "nativePrice": "560",
+        "nativePrice": "490",
         "gasPrice": "1",
         "nontarget": []
     },
     "Matic": {
         "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
         "baseGas": 1200000,
-        "nativePrice": "0.56",
-        "gasPrice": "40",
+        "nativePrice": "0.4",
+        "gasPrice": "210",
         "nontarget": []
     },
     "Merlin": {
         "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
         "baseGas": 400000,
-        "nativePrice": "64000",
+        "nativePrice": "56000",
         "gasPrice": "0.07",
         "nontarget": []
     },
     "zkSync": {
         "feeRecevier":"0xfc8d54a80e0Facc51D6cB8Dd2Df61851932f8DeF",
         "baseGas": 400000,
-        "nativePrice": "3500",
+        "nativePrice": "2520",
         "gasPrice": "0.05",
         "nontarget": []
     }
