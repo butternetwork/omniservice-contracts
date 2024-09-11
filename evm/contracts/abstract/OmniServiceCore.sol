@@ -21,7 +21,7 @@ abstract contract OmniServiceCore is
     UUPSUpgradeable,
     AccessControlEnumerableUpgradeable
 {
-    using AddressUpgradeable for address;
+    // using AddressUpgradeable for address;
 
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
@@ -55,7 +55,7 @@ abstract contract OmniServiceCore is
 
     event GasInfo(bytes32 orderId, uint256 executingGas, uint256 executedGas);
 
-    error ExecuteReturn(bytes errorInfo);
+    // error ExecuteReturn(bytes errorInfo);
 
     function initialize(address _owner) public virtual initializer checkAddress(_owner) {
         // _changeAdmin(_owner);
@@ -289,14 +289,31 @@ abstract contract OmniServiceCore is
         }
     }
 
+    function _retryMessageIn(
+        IEvent.dataOutEvent memory _outEvent,
+        MessageData memory _msgData
+    ) internal {
+        _retryExecute(_outEvent, _msgData);
+        emit MessageIn(
+            _outEvent.fromChain,
+            _outEvent.toChain,
+            _outEvent.orderId,
+            _outEvent.fromAddress,
+            bytes(""),
+            true,
+            bytes("")
+        );
+    }
+
     function _messageIn(
         IEvent.dataOutEvent memory _outEvent,
         MessageData memory _msgData,
-        bool _gasleft,
-        bool _revert
+        bool _gasleft
     ) internal {
-        if (_revert) {
-            _retryExecute(_outEvent, _msgData);
+        uint256 executingGas = gasleft();
+        (bool success, bytes memory returnData) = _messageExecute(_outEvent, _msgData, _gasleft);
+        emit GasInfo(_outEvent.orderId, executingGas, gasleft());
+        if (success) {
             emit MessageIn(
                 _outEvent.fromChain,
                 _outEvent.toChain,
@@ -307,22 +324,7 @@ abstract contract OmniServiceCore is
                 bytes("")
             );
         } else {
-            uint256 executingGas = gasleft();
-            (bool success, bytes memory returnData) = _messageExecute(_outEvent, _msgData, _gasleft);
-            emit GasInfo(_outEvent.orderId, executingGas, gasleft());
-            if (success) {
-                emit MessageIn(
-                    _outEvent.fromChain,
-                    _outEvent.toChain,
-                    _outEvent.orderId,
-                    _outEvent.fromAddress,
-                    bytes(""),
-                    true,
-                    bytes("")
-                );
-            } else {
-                _storeMessageData(_outEvent, returnData);
-            }
+            _storeMessageData(_outEvent, returnData);
         }
     }
 

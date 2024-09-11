@@ -47,7 +47,7 @@ contract OmniServiceRelay is OmniServiceCore {
         _transferInWithIndex(_chainId, _logIndex, _receiptProof);
     }
 
-    function transferInWithOrderId(
+    function transferIn(
         uint256 _chainId,
         uint256 _logIndex,
         bytes32 _orderId,
@@ -74,7 +74,8 @@ contract OmniServiceRelay is OmniServiceCore {
         );
 
         if (outEvent.toChain == selfChainId) {
-            _messageIn(outEvent, msgData, true, true);
+            _retryMessageIn(outEvent, msgData);
+            // _messageIn(outEvent, msgData, true, true);
         } else {
             _messageRelay(outEvent, msgData, true);
         }
@@ -98,10 +99,10 @@ contract OmniServiceRelay is OmniServiceCore {
             LogDecoder.txLog memory log = LogDecoder.decodeTxLog(logArray, _logIndex);
             // bytes32 topic = abi.decode(log.topics[0], (bytes32));
             require(log.topics[0] == EvmDecoder.MAP_MESSAGE_TOPIC, "MOSV3: Invalid topic");
-            bytes memory mosContract = Utils.toBytes(log.addr);
-            require(Utils.checkBytes(mosContract, mosContracts[_chainId]), "MOSV3: Invalid mos contract");
+            // bytes memory mosContract = Utils.toBytes(log.addr);
+            require(log.addr == Utils.fromBytes(mosContracts[_chainId]), "MOSV3: Invalid mos contract");
 
-            (, IEvent.dataOutEvent memory outEvent) = EvmDecoder.decodeDataLog(log);
+            IEvent.dataOutEvent memory outEvent = EvmDecoder.decodeDataLog(log);
             _transferIn(_chainId, outEvent);
         } else {
             require(false, "MOSV3: Invalid chain type");
@@ -115,7 +116,7 @@ contract OmniServiceRelay is OmniServiceCore {
         require(_chainId == _outEvent.fromChain, "MOSV3: Invalid from chain");
         MessageData memory msgData = abi.decode(_outEvent.messageData, (MessageData));
         if (_outEvent.toChain == selfChainId) {
-            _messageIn(_outEvent, msgData, true, false);
+            _messageIn(_outEvent, msgData, true);
         } else {
             _messageRelay(_outEvent, msgData, false);
         }

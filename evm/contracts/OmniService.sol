@@ -13,6 +13,9 @@ contract OmniService is OmniServiceCore {
     address public relayContract;
     ILightNode public lightNode;
 
+    // 20 bytes address + 8 bytes reserved + 4 bytes chain id
+    // bytes32 private relaySlot;
+
     event SetLightClient(address indexed lightNode);
     event SetRelayContract(uint256 indexed chainId, address indexed relay);
 
@@ -77,7 +80,7 @@ contract OmniService is OmniServiceCore {
         _transferIn(outEvent, true);
     }
 
-    function transferInVerifyWithOrderId(
+    function transferInVerify(
         uint256 _chainId,
         uint256 _logIndex,
         bytes32 _orderId,
@@ -102,7 +105,8 @@ contract OmniService is OmniServiceCore {
             _fromAddress,
             _messageData
         );
-        _messageIn(outEvent, msgData, false, false);
+        _retryMessageIn(outEvent, msgData);
+        //_messageIn(outEvent, msgData, false, false);
     }
 
     function retryMessageIn(
@@ -120,7 +124,8 @@ contract OmniService is OmniServiceCore {
             _messageData
         );
 
-        _messageIn(outEvent, msgData, true, true);
+        _retryMessageIn(outEvent, msgData);
+        // _messageIn(outEvent, msgData, true, true);
     }
 
     function _transferInVerify(
@@ -140,7 +145,7 @@ contract OmniService is OmniServiceCore {
         // bytes32 topic = abi.decode(log.topics[0], (bytes32));
         require(log.topics[0] == EvmDecoder.MAP_MESSAGE_TOPIC, "MOSV3: Invalid topic");
 
-        (, outEvent) = EvmDecoder.decodeDataLog(log);
+        return EvmDecoder.decodeDataLog(log);
     }
 
     function _transferIn(
@@ -162,7 +167,7 @@ contract OmniService is OmniServiceCore {
             );
         } else {
             MessageData memory msgData = abi.decode(_outEvent.messageData, (MessageData));
-            _messageIn(_outEvent, msgData, false, false);
+            _messageIn(_outEvent, msgData, false);
         }
     }
 
