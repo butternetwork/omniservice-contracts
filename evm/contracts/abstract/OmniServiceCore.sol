@@ -21,8 +21,6 @@ abstract contract OmniServiceCore is
     UUPSUpgradeable,
     AccessControlEnumerableUpgradeable
 {
-    // using AddressUpgradeable for address;
-
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
@@ -123,7 +121,7 @@ abstract contract OmniServiceCore is
         address _feeToken,
         uint256 _gasLimit
     ) external view override returns (uint256 amount, address receiverAddress) {
-        (amount, receiverAddress) = _getMessageFee(_toChain, _feeToken, _gasLimit);
+        (amount, receiverAddress) = _getMessageFee(selfChainId, _toChain, _feeToken, _gasLimit);
     }
 
     function getExecutePermission(
@@ -184,7 +182,9 @@ abstract contract OmniServiceCore is
         bytes memory _messageData,
         address _feeToken
     ) internal returns (bytes32, uint256) {
-        require(_toChain != selfChainId, "MOSV3: only other chain");
+        uint256 fromChain = selfChainId;
+
+        require(_toChain != fromChain, "MOSV3: only other chain");
 
         MessageData memory msgData = abi.decode(_messageData, (MessageData));
 
@@ -199,7 +199,7 @@ abstract contract OmniServiceCore is
 
         // TODO: check payload length
         // TODO: check target address
-        (uint256 amount, address receiverFeeAddress) = _getMessageFee(_toChain, _feeToken, msgData.gasLimit);
+        (uint256 amount, address receiverFeeAddress) = _getMessageFee(fromChain, _toChain, _feeToken, msgData.gasLimit);
         if (_feeToken == address(0)) {
             require(msg.value >= amount, "MOSV3: invalid message fee");
             if (msg.value > 0) {
@@ -209,11 +209,11 @@ abstract contract OmniServiceCore is
             SafeERC20Upgradeable.safeTransferFrom(IERC20Upgradeable(_feeToken), msg.sender, receiverFeeAddress, amount);
         }
 
-        bytes32 orderId = _getOrderId(msg.sender, msgData.target, _toChain);
+        bytes32 orderId = _getOrderId(msg.sender, msgData.target, fromChain, _toChain);
 
         bytes memory fromAddress = Utils.toBytes(msg.sender);
 
-        emit MessageOut(selfChainId, _toChain, orderId, fromAddress, _messageData);
+        emit MessageOut(fromChain, _toChain, orderId, fromAddress, _messageData);
 
         return (orderId, amount);
     }
@@ -381,18 +381,19 @@ abstract contract OmniServiceCore is
         msgData = abi.decode(_messageData, (MessageData));
     }
 
-    function _getOrderId(address _from, bytes memory _to, uint _toChain) internal returns (bytes32) {
-        return keccak256(abi.encodePacked(address(this), nonce++, selfChainId, _toChain, _from, _to));
+    function _getOrderId(address _from, bytes memory _to, uint256 _fromChain, uint256 _toChain) internal returns (bytes32) {
+        return keccak256(abi.encodePacked(address(this), nonce++, _fromChain, _toChain, _from, _to));
     }
 
     function _getMessageFee(
+        uint256 _fromChain,
         uint256 _toChain,
         address _feeToken,
         uint256 _gasLimit
     ) internal view returns (uint256 amount, address receiverAddress) {
         if (address(feeService) == address(0)) {
             (amount, receiverAddress) = _getServiceMessageFee(_toChain, _feeToken, _gasLimit);
-            if (selfChainId == 728126428 || selfChainId == 3448148188) {
+            if (_fromChain == 728126428 || _fromChain == 3448148188) {
                 if (_feeToken == address(0)) {
                     amount = amount / 10 ** 12;
                 }

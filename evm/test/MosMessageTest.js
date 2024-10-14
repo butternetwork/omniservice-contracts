@@ -96,6 +96,18 @@ describe("OmniServiceV3 start test", () => {
             ).to.be.revertedWith("MOSV3: not support msg value");
         });
 
+        it("messageOut v2 start test ", async function () {
+            let data = await echo.getData("hello", "hello world");
+
+            let msgData = await os.getMessageData(22776, echo.address, data, "5000000");
+
+            let byes = await os.toMessageData(22776, owner.address, "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", 20000000000000, "0xbc84cb4d931f43217a455b88292d2b73cfafc5b98ce1718ba3618194434d7e8c", msgData);
+            console.log(byes);
+
+            let ms = await os.getMessage(byes);
+            console.log(ms);
+        });
+
         it("transferIn start test ", async function () {
             expect(await echo.EchoList("hello")).to.equal("");
 

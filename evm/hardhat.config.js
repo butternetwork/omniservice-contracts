@@ -19,8 +19,9 @@ accounts.push(PRIVATE_KEY);
 module.exports = {
   defaultNetwork: 'hardhat',
   gasReporter: {
-    enabled: false,
+    enabled: true
   },
+
   abiExporter: {
     path: './abi',
     only: [":IMOS*", ":IMapo*", ":Omni*", ":IFee*"],

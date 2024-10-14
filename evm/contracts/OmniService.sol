@@ -4,7 +4,7 @@ pragma solidity 0.8.20;
 
 import "@mapprotocol/protocol/contracts/interface/ILightNode.sol";
 import "@mapprotocol/protocol/contracts/utils/Utils.sol";
-import "@mapprotocol/protocol/contracts/lib/LogDecoder.sol";
+import "@mapprotocol/protocol/contracts/lib/LogDecode.sol";
 import "./utils/EvmDecoder.sol";
 import "./abstract/OmniServiceCore.sol";
 
@@ -51,18 +51,18 @@ contract OmniService is OmniServiceCore {
     function transferInWithIndex(
         uint256 _chainId,
         uint256 _logIndex,
-        bytes memory _receiptProof
+        bytes calldata _receiptProof
     ) external virtual nonReentrant whenNotPaused {
         IEvent.dataOutEvent memory outEvent = _transferInVerify(_chainId, _logIndex, _receiptProof);
 
         _transferIn(outEvent, false);
     }
 
-    function transferIn(
+    function messageIn(
         uint256 _chainId,
         uint256 _logIndex,
         bytes32 _orderId,
-        bytes memory _receiptProof
+        bytes calldata _receiptProof
     ) external virtual nonReentrant whenNotPaused {
         require(!orderList[_orderId], "MOSV3: Order exist");
         IEvent.dataOutEvent memory outEvent = _transferInVerify(_chainId, _logIndex, _receiptProof);
@@ -73,7 +73,7 @@ contract OmniService is OmniServiceCore {
     function transferInVerify(
         uint256 _chainId,
         uint256 _logIndex,
-        bytes memory _receiptProof
+        bytes calldata _receiptProof
     ) external virtual nonReentrant whenNotPaused {
         IEvent.dataOutEvent memory outEvent = _transferInVerify(_chainId, _logIndex, _receiptProof);
 
@@ -84,7 +84,7 @@ contract OmniService is OmniServiceCore {
         uint256 _chainId,
         uint256 _logIndex,
         bytes32 _orderId,
-        bytes memory _receiptProof
+        bytes calldata _receiptProof
     ) external virtual nonReentrant whenNotPaused {
         require(!orderList[_orderId], "MOSV3: Order exist");
         IEvent.dataOutEvent memory outEvent = _transferInVerify(_chainId, _logIndex, _receiptProof);
@@ -131,18 +131,26 @@ contract OmniService is OmniServiceCore {
     function _transferInVerify(
         uint256 _chainId,
         uint256 _logIndex,
-        bytes memory _receiptProof
+        bytes calldata _receiptProof
     ) internal returns (IEvent.dataOutEvent memory outEvent) {
         require(_chainId == relayChainId, "MOSV3: Invalid chain id");
-        (bool success, string memory message, bytes memory logArray) = lightNode.verifyProofDataWithCache(
+        /*
+        (bool success, string memory message, bytes memory logArray) = lightNode.verifyProofData(
+            _receiptProof
+        );
+        require(success, message);
+        LogDecoder.txLog memory log = LogDecoder.decodeTxLog(logArray, _logIndex);
+        */
+
+        (bool success, string memory message, ILightVerifier.txLog memory log) = lightNode.verifyProofDataWithCache(
+            false,
+            _logIndex,
             _receiptProof
         );
         require(success, message);
 
-        LogDecoder.txLog memory log = LogDecoder.decodeTxLog(logArray, _logIndex);
         require(relayContract == log.addr, "MOSV3: Invalid relay");
 
-        // bytes32 topic = abi.decode(log.topics[0], (bytes32));
         require(log.topics[0] == EvmDecoder.MAP_MESSAGE_TOPIC, "MOSV3: Invalid topic");
 
         return EvmDecoder.decodeDataLog(log);

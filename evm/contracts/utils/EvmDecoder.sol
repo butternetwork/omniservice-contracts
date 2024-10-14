@@ -2,24 +2,16 @@
 
 pragma solidity 0.8.20;
 
-import "@mapprotocol/protocol/contracts/lib/RLPReader.sol";
+import "@mapprotocol/protocol/contracts/interface/ILightVerifier.sol";
 import "@mapprotocol/protocol/contracts/utils/Utils.sol";
-import "@mapprotocol/protocol/contracts/lib/LogDecoder.sol";
 import "../interface/IEvent.sol";
 
 library EvmDecoder {
-    using RLPReader for bytes;
-    using RLPReader for RLPReader.RLPItem;
-
     bytes32 constant MAP_MESSAGE_TOPIC = keccak256(bytes("MessageOut(uint256,uint256,bytes32,bytes,bytes)"));
 
     function decodeDataLog(
-        LogDecoder.txLog memory log
+        ILightVerifier.txLog memory log
     ) internal pure returns (IEvent.dataOutEvent memory outEvent) {
-        //executorId = Utils.toBytes(log.addr);
-        //outEvent.fromChain = abi.decode(log.topics[1], (uint256));
-        //outEvent.toChain = abi.decode(log.topics[2], (uint256));
-
         outEvent.fromChain = uint256(log.topics[1]);
         outEvent.toChain = uint256(log.topics[2]);
 

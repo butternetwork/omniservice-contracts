@@ -3,6 +3,7 @@
 pragma solidity 0.8.20;
 
 import "@mapprotocol/protocol/contracts/interface/ILightClientManager.sol";
+import "@mapprotocol/protocol/contracts/lib/LogDecode.sol";
 import "./utils/NearDecoder.sol";
 import "./utils/EvmDecoder.sol";
 import "./abstract/OmniServiceCore.sol";
@@ -47,7 +48,7 @@ contract OmniServiceRelay is OmniServiceCore {
         _transferInWithIndex(_chainId, _logIndex, _receiptProof);
     }
 
-    function transferIn(
+    function messageIn(
         uint256 _chainId,
         uint256 _logIndex,
         bytes32 _orderId,
@@ -96,7 +97,7 @@ contract OmniServiceRelay is OmniServiceCore {
             require(Utils.checkBytes(mosContract, mosContracts[_chainId]), "MOSV3: Invalid mos contract");
             // TODO support near
         } else if (chainTypes[_chainId] == ChainType.EVM) {
-            LogDecoder.txLog memory log = LogDecoder.decodeTxLog(logArray, _logIndex);
+            ILightVerifier.txLog memory log = LogDecode.decodeTxLog(logArray, _logIndex);
             // bytes32 topic = abi.decode(log.topics[0], (bytes32));
             require(log.topics[0] == EvmDecoder.MAP_MESSAGE_TOPIC, "MOSV3: Invalid topic");
             // bytes memory mosContract = Utils.toBytes(log.addr);
